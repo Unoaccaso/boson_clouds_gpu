@@ -7,9 +7,15 @@ from lib import generate, analysis
 
 import settings
 
+import importlib
+
+importlib.reload(analysis)
+importlib.reload(generate)
+
 
 import cupy
-import numpy
+
+import matplotlib.pyplot as plt
 
 
 def main():
@@ -28,6 +34,7 @@ def main():
         settings.SIMULATION["BH_MASS_MIN"],
         settings.SIMULATION["BH_MASS_MAX"],
     ).kroupa()
+    # ).linspace()
 
     # ====== Spins ======
     spins = generate.physics.Spins(
@@ -49,11 +56,13 @@ def main():
         settings.SIMULATION["HALO_BH_AGE_MIN"],
         settings.SIMULATION["HALO_BH_AGE_MAX"],
     ).geomuniform()
+    # ).constant()
     core_BH_ages = generate.physics.Ages(
         settings.SIMULATION["N_BHS_IN_GALACTIC_CENTER"],
         settings.SIMULATION["CORE_BH_AGE_MIN"],
         settings.SIMULATION["CORE_BH_AGE_MAX"],
     ).geomuniform()
+    # ).constant()
     # -> The order of concatenation is IMPORTANT.
     # BHs in core and halo have different characteristics
     BH_ages = cupy.concatenate((cluster_BH_ages, core_BH_ages))
@@ -67,8 +76,6 @@ def main():
         spins,
         settings,
     )
-
-    # print(frequencies.shape, frequencies.nbytes / 1e6)
 
     # -------------------------------------------------------------------------
 
@@ -108,6 +115,8 @@ def main():
     # -> Compute distances
     distances = analysis.compute.distance(positions)
     del positions
+
+    plt.hist(cupy.asnumpy(frequencies)[700], 100)
 
 
 if __name__ == "__main__":

@@ -3,6 +3,11 @@
 import cupy
 from cupy.typing import NDArray
 
+import sys
+
+sys.path.append("../../")
+import settings
+
 # import numpy as cupy
 
 ROUND = [
@@ -61,17 +66,23 @@ class Positions:
         if self._empty_shape:
             radius = 1
         else:
-            cube_radius = cupy.random.uniform(0, 1, self.shape).astype(cupy.float32)
+            cube_radius = cupy.random.uniform(0, 1, self.shape).astype(
+                settings.GENERAL["PRECISION"]
+            )
             radius = cupy.power(cube_radius, 1 / 3)
-        phi = cupy.random.uniform(0, 2 * cupy.pi, self.shape).astype(cupy.float32)
-        costheta = cupy.random.uniform(-1, 1, self.shape).astype(cupy.float32)
+        phi = cupy.random.uniform(0, 2 * cupy.pi, self.shape).astype(
+            settings.GENERAL["PRECISION"]
+        )
+        costheta = cupy.random.uniform(-1, 1, self.shape).astype(
+            settings.GENERAL["PRECISION"]
+        )
         theta = cupy.arccos(costheta)
 
         x = radius * cupy.sin(theta) * cupy.cos(phi)
         y = radius * cupy.sin(theta) * cupy.sin(phi)
         z = radius * costheta
 
-        positions = cupy.array([x, y, z], dtype=cupy.float32)
+        positions = cupy.array([x, y, z], dtype=settings.GENERAL["PRECISION"])
         rescaled_positions = positions * self._cluster_3D_sizes[:, None, None] / 2
         reshaped_positions = cupy.einsum("ijk -> jki", rescaled_positions)
 

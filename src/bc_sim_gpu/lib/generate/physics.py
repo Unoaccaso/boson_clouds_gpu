@@ -7,6 +7,11 @@ from numba import cuda
 
 import warnings
 
+import sys
+
+sys.path.append("../../")
+import settings
+
 
 class CustomDistributions:
     def __init__(
@@ -21,13 +26,15 @@ class CustomDistributions:
 
     def uniform(self):
         return cupy.random.uniform(
-            self._min, self._max, self._n_samples, dtype=cupy.float32
+            self._min, self._max, self._n_samples, dtype=settings.GENERAL["PRECISION"]
         )
 
     def geomuniform(self):
         min = cupy.log10(self._min)
         max = cupy.log10(self._max)
-        exponents = cupy.random.uniform(min, max, self._n_samples, dtype=cupy.float32)
+        exponents = cupy.random.uniform(
+            min, max, self._n_samples, dtype=settings.GENERAL["PRECISION"]
+        )
         return cupy.power(10, exponents)
 
     def kroupa(self):
@@ -36,24 +43,30 @@ class CustomDistributions:
         K = (1 - a) / (self._max ** (1 - a) - self._min ** (1 - a))
         Y = ((1 - a) / K * uniform_distribution + self._min ** (1 - a)) ** (1 / (1 - a))
         jj = cupy.logical_and((Y > self._min), (Y < self._max))
-        return Y[jj].astype(cupy.float32)
+        return Y[jj].astype(settings.GENERAL["PRECISION"])
 
     def geomspace(self):
         # Cupy does not have geomspace implementation yet
         min = cupy.log10(self._min)
         max = cupy.log10(self._max)
-        exponents = cupy.linspace(min, max, self._n_samples, dtype=cupy.float32)
+        exponents = cupy.linspace(
+            min, max, self._n_samples, dtype=settings.GENERAL["PRECISION"]
+        )
         return cupy.power(10, exponents)
 
     def linspace(self):
-        return cupy.linspace(self._min, self._max, self._n_samples, dtype=cupy.float32)
+        return cupy.linspace(
+            self._min, self._max, self._n_samples, dtype=settings.GENERAL["PRECISION"]
+        )
 
     def truncated_norm(self):
         return truncated_norm(self._max, self._min, self._n_samples)
 
     def constant(self):
         warnings.warn("Min value will be used as constant value, max is ignored.")
-        return cupy.zeros(self._n_samples, dtype=cupy.float32) + self._min
+        return (
+            cupy.zeros(self._n_samples, dtype=settings.GENERAL["PRECISION"]) + self._min
+        )
 
 
 class Masses(CustomDistributions):

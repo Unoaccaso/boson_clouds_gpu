@@ -2,6 +2,7 @@
 
 
 import numpy
+import cupy
 
 SIMULATION = dict(
     N_BHS_IN_GALACTIC_CENTER=10_000,
@@ -29,4 +30,8 @@ CONSTANTS = dict(
     FINT=1e30,  # Small interaction regime.
     DUTY=0.7,  # Detectors duty cycle (approximate)
     TOBS=365 * 86400 * 0.7,  # Here one should use the exact fraction of non-zero data,
+)
+
+GENERAL = dict(
+    PRECISION=cupy.float32,
 )
