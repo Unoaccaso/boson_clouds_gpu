@@ -1,6 +1,7 @@
 # ADDLICENSE
 # %%
 import cupy
+from cupy.typing import NDArray
 
 # import numpy as cupy
 
@@ -75,3 +76,22 @@ class Positions:
         reshaped_positions = cupy.einsum("ijk -> jki", rescaled_positions)
 
         return reshaped_positions
+
+
+def merge_position_clusters(cluster_1: NDArray, cluster_2: NDArray):
+    cluster_1_pos_array = cupy.reshape(
+        cluster_1,
+        (
+            cluster_1.shape[0] * cluster_1.shape[1],
+            cluster_1.shape[2],
+        ),
+    )
+    cluster_2_pos_array = cupy.reshape(
+        cluster_2,
+        (
+            cluster_2.shape[0] * cluster_2.shape[1],
+            cluster_2.shape[2],
+        ),
+    )
+
+    return cupy.concatenate([cluster_1_pos_array, cluster_2_pos_array], axis=0)

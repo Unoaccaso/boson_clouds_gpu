@@ -8,7 +8,7 @@ from numba import cuda
 import warnings
 
 
-class Masses:
+class CustomDistributions:
     def __init__(
         self,
         n_samples: int,
@@ -24,6 +24,12 @@ class Masses:
             self._min, self._max, self._n_samples, dtype=cupy.float32
         )
 
+    def geomuniform(self):
+        min = cupy.log10(self._min)
+        max = cupy.log10(self._max)
+        exponents = cupy.random.uniform(min, max, self._n_samples, dtype=cupy.float32)
+        return cupy.power(10, exponents)
+
     def kroupa(self):
         a = 2.3
         uniform_distribution = cupy.random.uniform(0, 1, self._n_samples)
@@ -32,33 +38,34 @@ class Masses:
         jj = cupy.logical_and((Y > self._min), (Y < self._max))
         return Y[jj].astype(cupy.float32)
 
-    def logspace(self):
-        return cupy.logspace(self._min, self._max, self._n_samples, dtype=cupy.float32)
+    def geomspace(self):
+        # Cupy does not have geomspace implementation yet
+        min = cupy.log10(self._min)
+        max = cupy.log10(self._max)
+        exponents = cupy.linspace(min, max, self._n_samples, dtype=cupy.float32)
+        return cupy.power(10, exponents)
 
     def linspace(self):
         return cupy.linspace(self._min, self._max, self._n_samples, dtype=cupy.float32)
-
-
-class Spins:
-    def __init__(
-        self,
-        n_samples: int,
-        min: float,
-        max: float = 1,
-    ) -> None:
-        self._n_samples = n_samples
-        self._min = min
-        self._max = max
-
-    def uniform(self):
-        return cupy.random.uniform(self._min, self._max, self._n_samples, cupy.float32)
 
     def truncated_norm(self):
         return truncated_norm(self._max, self._min, self._n_samples)
 
     def constant(self):
-        warnings.warn("Min value will be used as spin value, max is ignored.")
+        warnings.warn("Min value will be used as constant value, max is ignored.")
         return cupy.zeros(self._n_samples, dtype=cupy.float32) + self._min
+
+
+class Masses(CustomDistributions):
+    ...
+
+
+class Spins(CustomDistributions):
+    ...
+
+
+class Ages(CustomDistributions):
+    ...
 
 
 def truncated_norm(max, min, n_samples):
