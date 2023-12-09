@@ -1,2 +1,1 @@
-from . import generate
-from . import analysis
+from . import generate, analysis

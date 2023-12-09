@@ -57,14 +57,6 @@ def main():
     # BHs in core and halo have different characteristics
     BH_ages = cupy.concatenate((cluster_BH_ages, core_BH_ages))
 
-    # ========== Compute Frequencies ============
-    # ===========================================
-    frequencies = analysis.signal.Frequency(
-        boson_masses,
-        BH_masses,
-        BH_ages,
-        spins,
-    ).masked_values
     # -------------------------------------------------------------------------
 
     # ======= Positions ======
@@ -104,7 +96,21 @@ def main():
     distances = analysis.signal.distance(positions)
     del positions
 
-    # plt.hist(cupy.asnumpy(frequencies)[700], 100)
+    # ===========================================
+    # ========== Compute Frequencies ============
+    # ===========================================
+    signal = analysis.Signal(
+        boson_masses,
+        BH_masses,
+        BH_ages,
+        spins,
+        distances,
+    )
+    frequencies = signal.masked_frequencies
+    amplitudes = signal.masked_amplitudes
+    del signal
+
+    print
 
 
 if __name__ == "__main__":
