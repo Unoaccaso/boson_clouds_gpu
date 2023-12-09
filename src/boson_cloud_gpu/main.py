@@ -1,21 +1,11 @@
 # ADDLICENSE
 
 
-# %%
-
-from lib import generate, analysis
+from utils import generate, analysis
 
 import settings
 
-import importlib
-
-importlib.reload(analysis)
-importlib.reload(generate)
-
-
 import cupy
-
-import matplotlib.pyplot as plt
 
 
 def main():
@@ -69,14 +59,12 @@ def main():
 
     # ========== Compute Frequencies ============
     # ===========================================
-    frequencies = analysis.compute.frequencies(
+    frequencies = analysis.signal.Frequency(
         boson_masses,
         BH_masses,
         BH_ages,
         spins,
-        settings,
-    )
-
+    ).masked_values
     # -------------------------------------------------------------------------
 
     # ======= Positions ======
@@ -113,10 +101,10 @@ def main():
     del halo_sources_positions, core_sources_positions
 
     # -> Compute distances
-    distances = analysis.compute.distance(positions)
+    distances = analysis.signal.distance(positions)
     del positions
 
-    plt.hist(cupy.asnumpy(frequencies)[700], 100)
+    # plt.hist(cupy.asnumpy(frequencies)[700], 100)
 
 
 if __name__ == "__main__":
