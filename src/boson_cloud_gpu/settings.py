@@ -8,7 +8,7 @@ SIMULATION = dict(
     N_BHS_IN_GALACTIC_CENTER=10_000,
     N_BHS_IN_HALO_CLUSTERS=100,
     N_CLUSTERS_IN_HALO=110,
-    N_BOSONS=2000,
+    N_BOSONS=1000,
     GLOBULAR_CLUSTERS_DISTACE=30e3,  # Distance is in parsec
     BH_MASS_MIN=5,
     BH_MASS_MAX=30,
@@ -22,6 +22,7 @@ SIMULATION = dict(
     CORE_BH_AGE_MIN=1e5,
     CORE_BH_AGE_MAX=1e7,
 )
+#! THIS DON'T WORK, VALUES ARE HARD CODED NOW!!!
 CONSTANTS = dict(
     # 1/day
     OM0=2 * numpy.pi / 86400,
@@ -34,4 +35,20 @@ CONSTANTS = dict(
 
 GENERAL = dict(
     PRECISION=cupy.float32,
+)
+
+CUDA = dict(
+    RTX_3050TI=dict(
+        MULTIPROCESSORS=20,  # RT CORES
+        MAX_THREAD_PER_BLOCK=1024,
+        MAX_THREAD_PER_RT=1536,
+        MAX_DIM_BLOCK=(1024, 1024, 64),
+    ),
+    TESLA_K20=dict(
+        MULTIPROCESSORS=13,
+        MAX_THREAD_PER_BLOCK=1024,
+        MAX_THREAD_PER_RT=2048,
+        MAX_DIM_BLOCK=(1024, 1024, 64),
+    ),
+    BLOCK_SIZE=(8, 32),
 )

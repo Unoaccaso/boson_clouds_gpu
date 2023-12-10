@@ -110,8 +110,6 @@ def main():
     amplitudes = signal.masked_amplitudes
     del signal
 
-    print
-
 
 if __name__ == "__main__":
     main()
