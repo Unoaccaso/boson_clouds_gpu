@@ -290,12 +290,33 @@ preprocessing_module = cupy.RawModule(code=_preprocessing_module)
 
 def distance(positions: NDArray):
     # Computing distances
-    distances = cupy.sqrt(
-        positions[:, 0] * positions[:, 0]
-        + positions[:, 1] * positions[:, 1]
-        + positions[:, 2] * positions[:, 2]
+    distance_kernel = cupy.RawKernel(
+        r"""
+        extern "C" __global__
+        void distance(
+            const float* position,
+            const int n_positions,
+            float* distance
+        )
+        {
+            int y_abs = threadIdx.y + blockDim.y * blockIdx.y;
+            
+            if (y_abs < n_positions)
+            {
+                distance[y_abs] = sqrt(position[y_abs * 3] * position[y_abs * 3]\
+                    + position[y_abs * 3 + 1] * position[y_abs * 3 + 1]\
+                    + position[y_abs * 3 + 2] * position[y_abs * 3 + 2]\
+                    );
+            }
+        }
+    """,
+        "distance",
     )
-    del positions
+    n_positions = int(positions.shape[0])
+    distances = cupy.empty(n_positions, dtype=settings.GENERAL["PRECISION"])
+    block_size = (1, settings.CUDA["BLOCK_SIZE"][1])
+    grid_size = (1, n_positions // int(block_size[1]) + 1)
+    distance_kernel(grid_size, block_size, (positions, n_positions, distances))
 
     return distances
 
@@ -304,21 +325,14 @@ def dispatch_kernel(kernel, nrows: int, ncols: int, *args):
     block_size = settings.CUDA["BLOCK_SIZE"]
 
     grid_size = (
-        int(cupy.ceil(ncols / block_size[0])),
-        int(cupy.ceil(nrows / block_size[1])),
+        ncols // block_size[0] + 1,
+        nrows // block_size[1] + 1,
     )
 
-    # This runs faster on teslak20 (empirical result)
-    _1D_grid_size = (
-        int(
-            cupy.ceil(
-                ncols / (block_size[0] * block_size[1]),
-            )
-        ),
-    )
-
-    out_var = cupy.ones((nrows, ncols), dtype=PRECISION)
-    kernel(_1D_grid_size, block_size, args + (nrows, ncols, out_var))
+    # The output variable is created but the elements ar not initialized
+    # one should be very sure that the kernel correctly populates the array.
+    out_var = cupy.empty((nrows, ncols), dtype=PRECISION)
+    kernel(grid_size, block_size, args + (nrows, ncols, out_var))
 
     return out_var
 

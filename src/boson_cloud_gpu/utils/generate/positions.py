@@ -60,7 +60,7 @@ class Positions:
         rescaled_positions = (
             normalized_positions * self._cluster_3D_sizes[None, None, :] / 2
         )
-        return rescaled_positions
+        return rescaled_positions.astype(settings.GENERAL["PRECISION"])
 
     def uniform(self):
         if self._empty_shape:
@@ -86,7 +86,7 @@ class Positions:
         rescaled_positions = positions * self._cluster_3D_sizes[:, None, None] / 2
         reshaped_positions = cupy.einsum("ijk -> jki", rescaled_positions)
 
-        return reshaped_positions
+        return reshaped_positions.astype(settings.GENERAL["PRECISION"])
 
 
 def merge_position_clusters(cluster_1: NDArray, cluster_2: NDArray):
@@ -105,4 +105,8 @@ def merge_position_clusters(cluster_1: NDArray, cluster_2: NDArray):
         ),
     )
 
-    return cupy.concatenate([cluster_1_pos_array, cluster_2_pos_array], axis=0)
+    return cupy.concatenate(
+        [cluster_1_pos_array, cluster_2_pos_array],
+        axis=0,
+        dtype=settings.GENERAL["PRECISION"],
+    )

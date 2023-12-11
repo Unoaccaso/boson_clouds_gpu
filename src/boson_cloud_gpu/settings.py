@@ -17,10 +17,10 @@ SIMULATION = dict(
     SPIN_MIN=0.4,
     SPIN_MAX=0.6,
     # Ages
-    HALO_BH_AGE_MIN=10_000_000,
-    HALO_BH_AGE_MAX=1_000_000_000,
-    CORE_BH_AGE_MIN=100_000,
-    CORE_BH_AGE_MAX=10_000_000,
+    HALO_BH_AGE_MIN=1e7,
+    HALO_BH_AGE_MAX=1e9,
+    CORE_BH_AGE_MIN=1e5,
+    CORE_BH_AGE_MAX=1e7,
 )
 #! THIS DON'T WORK, VALUES ARE HARD CODED NOW!!!
 CONSTANTS = dict(
@@ -50,5 +50,5 @@ CUDA = dict(
         MAX_THREAD_PER_RT=2048,
         MAX_DIM_BLOCK=(1024, 1024, 64),
     ),
-    BLOCK_SIZE=(32, 32),  # (x, y)
+    BLOCK_SIZE=(32, 8),  # (x, y)
 )
