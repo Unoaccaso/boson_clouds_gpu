@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import settings
 
 import cupy
+import numpy
 
 
 def main():
@@ -17,7 +18,6 @@ def main():
         * settings.SIMULATION["N_CLUSTERS_IN_HALO"]
     )
     N_sources = settings.SIMULATION["N_BHS_IN_GALACTIC_CENTER"] + N_BHs_in_halo
-
     # ========= GENERATE SOURCES ===========
     #
     # ====== Masses =======
@@ -26,7 +26,6 @@ def main():
         settings.SIMULATION["BH_MASS_MIN"],
         settings.SIMULATION["BH_MASS_MAX"],
     ).kroupa()
-    # ).linspace()
 
     # ====== Spins ======
     spins = generate.physics.Spins(
@@ -112,6 +111,9 @@ def main():
     amplitudes = signal.masked_amplitudes
     del signal
 
+    n = 100
+    frequencies = cupy.asnumpy(frequencies)
+    plt.hist(frequencies[n][frequencies[n] > 0], 100)
     plt.show()
 
 

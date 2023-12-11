@@ -60,7 +60,9 @@ class CustomDistributions:
         )
 
     def truncated_norm(self):
-        return truncated_norm(self._max, self._min, self._n_samples)
+        return truncated_norm(self._max, self._min, self._n_samples).astype(
+            settings.GENERAL["PRECISION"]
+        )
 
     def constant(self):
         warnings.warn("Min value will be used as constant value, max is ignored.")
