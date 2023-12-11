@@ -12,8 +12,8 @@ SIMULATION = dict(
     GLOBULAR_CLUSTERS_DISTACE=30e3,  # Distance is in parsec
     BH_MASS_MIN=5,
     BH_MASS_MAX=30,
-    BOSON_MASS_MIN=1e-14,
-    BOSON_MASS_MAX=1e-11,
+    BOSON_MASS_MIN=1e-13,
+    BOSON_MASS_MAX=1e-12,
     SPIN_MIN=0.4,
     SPIN_MAX=0.6,
     # Ages
@@ -50,5 +50,5 @@ CUDA = dict(
         MAX_THREAD_PER_RT=2048,
         MAX_DIM_BLOCK=(1024, 1024, 64),
     ),
-    BLOCK_SIZE=(8, 32),
+    BLOCK_SIZE=(32, 8),  # (x, y)
 )

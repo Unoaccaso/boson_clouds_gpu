@@ -3,6 +3,8 @@
 
 from utils import generate, analysis
 
+import matplotlib.pyplot as plt
+
 import settings
 
 import cupy
@@ -109,6 +111,12 @@ def main():
     frequencies = signal.masked_frequencies
     amplitudes = signal.masked_amplitudes
     del signal
+
+    print(frequencies[700])
+
+    plt.hist(cupy.asnumpy(frequencies)[400])
+
+    plt.show()
 
 
 if __name__ == "__main__":

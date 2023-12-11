@@ -35,13 +35,14 @@ extern "C"{
         const int nrows,
         const int ncols,
         float* _alpha
-    ){
-        int i = blockIdx.x * blockDim.x + threadIdx.x;
-        int j = blockIdx.y * blockDim.y + threadIdx.y;
-
-        if (i < ncols && j < nrows){
-            _alpha[j * ncols + i] = G / (c * c * c * hbar) * onev\
-                * 2e30 * bh_mass[i] * boson_mass[j];
+    ){  
+        
+        int x_abs = threadIdx.x + blockDim.x * blockIdx.x;
+        int y_abs = threadIdx.y + blockDim.y * blockIdx.y;
+        
+        if ((x_abs < ncols) && (y_abs < nrows)){
+            _alpha[x_abs + ncols * y_abs] = G / (c * c * c * hbar) * onev\
+                * 2e30 * bh_mass[x_abs] * boson_mass[y_abs];
         }
     }
 
@@ -51,24 +52,25 @@ extern "C"{
         const int nrows,
         const int ncols,
         float* _f_dot
-    ){
-        int i = blockIdx.x * blockDim.x + threadIdx.x;
-        int j = blockIdx.y * blockDim.y + threadIdx.y;
-
-        if (i < ncols && j < nrows){
+    ){  
+        
+        int x_abs = threadIdx.x + blockDim.x * blockIdx.x;
+        int y_abs = threadIdx.y + blockDim.y * blockIdx.y;
+        
+        if ((x_abs < ncols) && (y_abs < nrows)){
             float const_4 = (1e17 / 1e30) * (1e17 / 1e30) * (1e17 / 1e30) * (1e17 / 1e30);
             
             // faster power to 17 ~ half the time
-            float alpha_17 = alpha[j * ncols + i] / 0.1;
+            float alpha_17 = alpha[x_abs + ncols * y_abs] / 0.1;
             int k;
             for (k = 0 ; k < 4 ; k++)
             {
                 alpha_17 *= alpha_17;
             }
-            alpha_17 *= alpha[j * ncols + i] / 0.1;
+            alpha_17 *= alpha[x_abs + ncols * y_abs] / 0.1;
 
-            _f_dot[j * ncols + i] = 7e-15 + 1e-10 * const_4 \
-                * boson_mass[j] / 1e-24 * alpha_17;
+            _f_dot[x_abs + ncols * y_abs] = 7e-15 + 1e-10 * const_4 \
+                * boson_mass[y_abs] / 1e-24 * alpha_17;
         }        
     }
 
@@ -77,12 +79,13 @@ extern "C"{
         const int nrows,
         const int ncols,
         float* df_dot
-    ){
-        int i = blockIdx.x * blockDim.x + threadIdx.x;
-        int j = blockIdx.y * blockDim.y + threadIdx.y;
-
-        if (i < ncols && j < nrows){
-            df_dot[j * ncols + i] = om0 * sqrt(2 * frequency[j * ncols + i] \
+    ){  
+        
+        int x_abs = threadIdx.x + blockDim.x * blockIdx.x;
+        int y_abs = threadIdx.y + blockDim.y * blockIdx.y;
+        
+        if ((x_abs < ncols) && (y_abs < nrows)){
+            df_dot[x_abs + ncols * y_abs] = om0 * sqrt(2 * frequency[x_abs + ncols * y_abs] \
                 / 10) * 10 * r0 / c / (2 * t_obs / duty);
         }        
     }
@@ -94,23 +97,24 @@ extern "C"{
         const int nrows,
         const int ncols,
         float* tau_inst
-    ){
-        int i = blockIdx.x * blockDim.x + threadIdx.x;
-        int j = blockIdx.y * blockDim.y + threadIdx.y;
-
-        if (i < ncols && j < nrows){
+    ){  
+        
+        int x_abs = threadIdx.x + blockDim.x * blockIdx.x;
+        int y_abs = threadIdx.y + blockDim.y * blockIdx.y;
+        
+        if ((x_abs < ncols) && (y_abs < nrows)){
         
             // faster power to 9 ~ half the time
-            float alpha_9 = alpha[j * ncols + i] / 0.1;
+            float alpha_9 = alpha[x_abs + ncols * y_abs] / 0.1;
             int k;
             for (k = 0 ; k < 3 ; k++)
             {
                 alpha_9 *= alpha_9;
             }
-            alpha_9 *= alpha[j * ncols + i] / 0.1;
+            alpha_9 *= alpha[x_abs + ncols * y_abs] / 0.1;
         
-            tau_inst[j * ncols + i] = 27 * 86400 / 10 * bh_mass[i] \
-                * alpha_9 / spin[i];
+            tau_inst[x_abs + ncols * y_abs] = 27 * 86400 / 10 * bh_mass[x_abs] \
+                * alpha_9 / spin[x_abs];
         }
     }
 
@@ -121,23 +125,24 @@ extern "C"{
         const int nrows,
         const int ncols,
         float* tau_gw
-    ){
-        int i = blockIdx.x * blockDim.x + threadIdx.x;
-        int j = blockIdx.y * blockDim.y + threadIdx.y;
-
-        if (i < ncols && j < nrows){
+    ){  
+        
+        int x_abs = threadIdx.x + blockDim.x * blockIdx.x;
+        int y_abs = threadIdx.y + blockDim.y * blockIdx.y;
+        
+        if ((x_abs < ncols) && (y_abs < nrows)){
         
             // faster power to 15 ~ half the time
-            float alpha_15 = alpha[j * ncols + i] / 0.1;
+            float alpha_15 = alpha[x_abs + ncols * y_abs] / 0.1;
             int k;
             for (k = 0 ; k < 4 ; k++)
             {
                 alpha_15 *= alpha_15;
             }
-            alpha_15 /= alpha[j * ncols + i] / 0.1;
+            alpha_15 /= alpha[x_abs + ncols * y_abs] / 0.1;
 
-            tau_gw[j * ncols + i] = 6.5e4 * 365 * 86400 / 10 * bh_mass[i] \
-                * alpha_15 / spin[i];
+            tau_gw[x_abs + ncols * y_abs] = 6.5e4 * 365 * 86400 / 10 * bh_mass[x_abs] \
+                * alpha_15 / spin[x_abs];
         }
     }
 
@@ -146,13 +151,14 @@ extern "C"{
         const int nrows,
         const int ncols,
         float* chi_c
-    ){
-        int i = blockIdx.x * blockDim.x + threadIdx.x;
-        int j = blockIdx.y * blockDim.y + threadIdx.y;
-
-        if (i < ncols && j < nrows){
-            chi_c[j * ncols + i] = 4 * alpha[j * ncols + i] / \
-                ((1 + 4.0 * alpha[j * ncols + i]) * (1 + 4.0 * alpha[j * ncols + i]));
+    ){  
+        
+        int x_abs = threadIdx.x + blockDim.x * blockIdx.x;
+        int y_abs = threadIdx.y + blockDim.y * blockIdx.y;
+        
+        if ((x_abs < ncols) && (y_abs < nrows)){
+            chi_c[x_abs + ncols * y_abs] = 4 * alpha[x_abs + ncols * y_abs] / \
+                ((1 + 4.0 * alpha[x_abs + ncols * y_abs]) * (1 + 4.0 * alpha[x_abs + ncols * y_abs]));
         }        
     }
 
@@ -162,14 +168,15 @@ extern "C"{
         const int nrows,
         const int ncols,
         float* frequency
-    ){
-        int i = blockIdx.x * blockDim.x + threadIdx.x;
-        int j = blockIdx.y * blockDim.y + threadIdx.y;
-
-        if (i < ncols && j < nrows){
-            frequency[j * ncols + i] = 483 * boson_mass[j] / 1e-12 * \
-                (1 - 7e-4 * 1e22 * bh_mass[i] * bh_mass[i] * \
-                    boson_mass[j] * boson_mass[j]);
+    ){  
+        
+        int x_abs = threadIdx.x + blockDim.x * blockIdx.x;
+        int y_abs = threadIdx.y + blockDim.y * blockIdx.y;
+        
+        if ((x_abs < ncols) && (y_abs < nrows)){
+            frequency[x_abs + ncols * y_abs] = 483 * boson_mass[y_abs] / 1e-12 * \
+                (1 - 7e-4 * 1e22 * bh_mass[x_abs] * bh_mass[x_abs] * \
+                    boson_mass[y_abs] * boson_mass[y_abs]);
         }            
     }
 
@@ -186,27 +193,28 @@ extern "C"{
         const int nrows,
         const int ncols,
         float* amplitude
-    ){
-        int i = blockIdx.x * blockDim.x + threadIdx.x;
-        int j = blockIdx.y * blockDim.y + threadIdx.y;
-
-        if (i < ncols && j < nrows){
+    ){  
+        
+        int x_abs = threadIdx.x + blockDim.x * blockIdx.x;
+        int y_abs = threadIdx.y + blockDim.y * blockIdx.y;
+        
+        if ((x_abs < ncols) && (y_abs < nrows)){
         
             // faster power to 7 ~ half the time
-            float alpha_7 = alpha[j * ncols + i] / 0.1;
+            float alpha_7 = alpha[x_abs + ncols * y_abs] / 0.1;
             int k;
             for (k = 0 ; k < 3 ; k++)
             {
                 alpha_7 *= alpha_7;
             }
-            alpha_7 /= alpha[j * ncols + i] / 0.1;
+            alpha_7 /= alpha[x_abs + ncols * y_abs] / 0.1;
 
-            float timefactor = 1 + (bh_ages_sec[i] - tau_inst[j * ncols + i]) \
-                / tau_gw[j * ncols + i];
+            float timefactor = 1 + (bh_ages_sec[x_abs] - tau_inst[x_abs + ncols * y_abs]) \
+                / tau_gw[x_abs + ncols * y_abs];
 
-            amplitude[j * ncols + i] = 1 / sqrt(3.) * 3.0e-24 / 10 * bh_mass[j * ncols + i] \
-                * alpha_7 * (spin[i] - chi_c[j * ncols + i]) \
-                    / (timefactor * distance[i]);    
+            amplitude[x_abs + ncols * y_abs] = 1 / sqrt(3.) * 3.0e-24 / 10 * bh_mass[x_abs + ncols * y_abs] \
+                * alpha_7 * (spin[x_abs] - chi_c[x_abs + ncols * y_abs]) \
+                    / (timefactor * distance[x_abs]);    
         }          
     }
 
@@ -221,29 +229,32 @@ extern "C"{
         const float* f_dot,
         const float* df_dot,
         const int nrows,
-        const int ncols,
-        float* mask
-    )
-    {
-        int i = blockIdx.x * blockDim.x + threadIdx.x;
-        int j = blockIdx.y * blockDim.y + threadIdx.y;
-
-        if (i < ncols && j < nrows)
+        const int ncols,    
+        float* mask)
+    {   
+        
+        int x_abs = threadIdx.x + blockDim.x * blockIdx.x;
+        int y_abs = threadIdx.y + blockDim.y * blockIdx.y;
+        
+        if ((x_abs < ncols) && (y_abs < nrows))
         {
             if (
-                (tau_gw[j * ncols + i] * 3 < bh_age[i]) \
-                && (alpha[j * ncols + i] > 0.1) \
-                && (frequency[j * ncols + i] < 20) \
-                && (frequency[j * ncols + i] > 2048) \
-                && (tau_inst[j * ncols + i] > 10 * bh_age[i]) \
-                && (10 * tau_inst[j * ncols + i] > tau_gw[j * ncols + i]) \
-                && (spin[i] < chi_c[j * ncols + i]) \
-                && (df_dot[j * ncols + i] < f_dot[j * ncols + i])
+                (tau_gw[x_abs + ncols * y_abs] * 3 < bh_age[x_abs]) \
+                || (alpha[x_abs + ncols * y_abs] > 0.1) \
+                || (frequency[x_abs + ncols * y_abs] < 20.) \
+                || (frequency[x_abs + ncols * y_abs] > 2048.) \
+                || (tau_inst[x_abs + ncols * y_abs] > 10 * bh_age[x_abs]) \
+                || (10 * tau_inst[x_abs + ncols * y_abs] > tau_gw[x_abs + ncols * y_abs]) \
+                || (spin[x_abs] < chi_c[x_abs + ncols * y_abs]) \
+                || (df_dot[x_abs + ncols * y_abs] < f_dot[x_abs + ncols * y_abs])
             )
             {
-                mask[j * ncols + i] = NAN;
+                mask[x_abs + ncols * y_abs] = NAN;
             }
-            else{ mask[j * ncols + i] = 1 ;}
+            else
+            {
+                mask[x_abs + ncols * y_abs] = 1;
+            }
         }
     }
 
@@ -254,13 +265,14 @@ extern "C"{
         const int ncols,
         float* out
     )
-    {
-        int i = blockIdx.x * blockDim.x + threadIdx.x;
-        int j = blockIdx.y * blockDim.y + threadIdx.y;
-
-        if (i < ncols && j < nrows)
+    {   
+        
+        int x_abs = threadIdx.x + blockDim.x * blockIdx.x;
+        int y_abs = threadIdx.y + blockDim.y * blockIdx.y;
+        
+        if ((x_abs < ncols) && (y_abs < nrows))
         {
-            out[j * ncols + i] = arr[j * ncols + i] * mask[j * ncols + i];
+            out[x_abs + ncols * y_abs] = arr[x_abs + ncols * y_abs] * mask[x_abs + ncols * y_abs];
         }
     }
 }
@@ -281,16 +293,23 @@ def distance(positions: NDArray):
     return distances
 
 
-def dispatch_kernel(kernel, n_rows: int, n_cols: int, *args):
+def dispatch_kernel(kernel, n_rows: int, ncols: int, *args):
     block_size = settings.CUDA["BLOCK_SIZE"]
 
+    grid_x = ncols // block_size[0]
+    if (ncols % block_size[0]) != 0:
+        grid_x += 1
+    grid_y = n_rows // block_size[1]
+    if (n_rows % block_size[1]) != 0:
+        grid_y += 1
+
     grid_size = (
-        n_rows // block_size[0] + 1,
-        n_cols // block_size[1] + 1,
+        grid_x,
+        grid_y,
     )
 
-    out_var = cupy.empty((n_rows, n_cols), dtype=PRECISION)
-    kernel(grid_size, block_size, args + (n_rows, n_cols, out_var))
+    out_var = cupy.ones((n_rows, ncols), dtype=PRECISION)
+    kernel(grid_size, block_size, args + (n_rows, ncols, out_var))
 
     return out_var
 
@@ -311,8 +330,8 @@ class Signal:
         self._boson_mass = boson_mass
         self._distance = distance
         self.BH_ages_sec = BH_ages_yrs * 86400 * 365
-        self.n_rows = len(self.BH_mass)
-        self.n_cols = len(self.boson_mass)
+        self.n_rows = len(self.boson_mass)
+        self.ncols = len(self.BH_mass)
 
     @property
     def distance(self):
@@ -337,7 +356,7 @@ class Signal:
         _df_dot = dispatch_kernel(
             df_dot_kernel,
             self.n_rows,
-            self.n_cols,
+            self.ncols,
             self.frequency_at_detector.astype(PRECISION),
         )
 
@@ -357,7 +376,7 @@ class Signal:
         _alpha = dispatch_kernel(
             alpha_kernel,
             self.n_rows,
-            self.n_cols,
+            self.ncols,
             self.BH_mass.astype(PRECISION),
             self.boson_mass.astype(PRECISION),
         )
@@ -370,7 +389,7 @@ class Signal:
         _f_dot = dispatch_kernel(
             f_dot_kernel,
             self.n_rows,
-            self.n_cols,
+            self.ncols,
             self.alpha.astype(PRECISION),
             self.boson_mass.astype(PRECISION),
         )
@@ -383,7 +402,7 @@ class Signal:
         _tau_inst = dispatch_kernel(
             tau_inst_kernel,
             self.n_rows,
-            self.n_cols,
+            self.ncols,
             self.BH_mass.astype(PRECISION),
             self.spins.astype(PRECISION),
             self.alpha.astype(PRECISION),
@@ -397,7 +416,7 @@ class Signal:
         _tau_gw = dispatch_kernel(
             tau_gw_kernel,
             self.n_rows,
-            self.n_cols,
+            self.ncols,
             self.BH_mass.astype(PRECISION),
             self.spins.astype(PRECISION),
             self.alpha.astype(PRECISION),
@@ -411,7 +430,7 @@ class Signal:
         _chi_c = dispatch_kernel(
             chi_c_kernel,
             self.n_rows,
-            self.n_cols,
+            self.ncols,
             self.alpha.astype(PRECISION),
         )
 
@@ -423,7 +442,7 @@ class Signal:
         _frequency = dispatch_kernel(
             frequency_kernel,
             self.n_rows,
-            self.n_cols,
+            self.ncols,
             self.BH_mass.astype(PRECISION),
             self.boson_mass.astype(PRECISION),
         )
@@ -436,7 +455,7 @@ class Signal:
         _amplitude = dispatch_kernel(
             amplitude_kernel,
             self.n_rows,
-            self.n_cols,
+            self.ncols,
             self.BH_mass.astype(PRECISION),
             self.boson_mass.astype(PRECISION),
             self.spins.astype(PRECISION),
@@ -456,7 +475,7 @@ class Signal:
         mask = dispatch_kernel(
             mask_kernel,
             self.n_rows,
-            self.n_cols,
+            self.ncols,
             self.frequency_at_detector.astype(PRECISION),
             self.tau_gw.astype(PRECISION),
             self.tau_inst.astype(PRECISION),
@@ -483,7 +502,7 @@ class Signal:
         out_values = dispatch_kernel(
             apply_mask_kernel,
             self.n_rows,
-            self.n_cols,
+            self.ncols,
             self.frequency_at_detector,
             self.undetectable_values_mask,
         )
@@ -495,7 +514,7 @@ class Signal:
         out_values = dispatch_kernel(
             apply_mask_kernel,
             self.n_rows,
-            self.n_cols,
+            self.ncols,
             self.amplitude_at_detector,
             self.undetectable_values_mask,
         )
