@@ -111,10 +111,10 @@ def main():
     amplitudes = signal.masked_amplitudes
     del signal
 
-    n = 100
+    """ n = 700
     frequencies = cupy.asnumpy(frequencies)
     plt.hist(frequencies[n][frequencies[n] > 0], 100)
-    plt.show()
+    plt.show() """
 
 
 if __name__ == "__main__":
