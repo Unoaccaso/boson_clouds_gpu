@@ -303,20 +303,22 @@ def distance(positions: NDArray):
 def dispatch_kernel(kernel, nrows: int, ncols: int, *args):
     block_size = settings.CUDA["BLOCK_SIZE"]
 
-    grid_x = ncols // block_size[0]
-    if (ncols % block_size[0]) != 0:
-        grid_x += 1
-    grid_y = nrows // block_size[1]
-    if (nrows % block_size[1]) != 0:
-        grid_y += 1
-
     grid_size = (
-        grid_x,
-        grid_y,
+        int(cupy.ceil(ncols / block_size[0])),
+        int(cupy.ceil(nrows / block_size[1])),
+    )
+
+    # This runs faster on teslak20 (empirical result)
+    _1D_grid_size = (
+        int(
+            cupy.ceil(
+                ncols / (block_size[0] * block_size[1]),
+            )
+        ),
     )
 
     out_var = cupy.ones((nrows, ncols), dtype=PRECISION)
-    kernel(grid_size, block_size, args + (nrows, ncols, out_var))
+    kernel(_1D_grid_size, block_size, args + (nrows, ncols, out_var))
 
     return out_var
 

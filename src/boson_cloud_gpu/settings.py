@@ -50,5 +50,5 @@ CUDA = dict(
         MAX_THREAD_PER_RT=2048,
         MAX_DIM_BLOCK=(1024, 1024, 64),
     ),
-    BLOCK_SIZE=(32, 8),  # (x, y)
+    BLOCK_SIZE=(32, 32),  # (x, y)
 )

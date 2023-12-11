@@ -3,9 +3,14 @@
 
 from utils import generate, analysis
 
+import importlib
+
+
 import matplotlib.pyplot as plt
 
 import settings
+
+importlib.reload(settings)
 
 import cupy
 import numpy
