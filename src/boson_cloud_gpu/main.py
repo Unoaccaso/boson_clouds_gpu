@@ -112,10 +112,6 @@ def main():
     amplitudes = signal.masked_amplitudes
     del signal
 
-    print(frequencies[700])
-
-    plt.hist(cupy.asnumpy(frequencies)[400])
-
     plt.show()
 
 
