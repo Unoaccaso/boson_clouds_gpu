@@ -117,12 +117,13 @@ def main():
 
     del signal
 
-    n = 700
+    """ n = 700
     frequencies = cupy.asnumpy(amplitudes)
     plt.hist(frequencies[n][frequencies[n] > 0], 100)
     plt.yscale("log")
     plt.xscale("log")
     plt.show()
+    """
 
 
 if __name__ == "__main__":

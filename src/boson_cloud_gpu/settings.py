@@ -50,5 +50,7 @@ CUDA = dict(
         MAX_THREAD_PER_RT=2048,
         MAX_DIM_BLOCK=(1024, 1024, 64),
     ),
+    # The choice of block size is very architecture dependant
+    # Found that for teslaK20 -> (32, 8)
     BLOCK_SIZE=(32, 8),  # (x, y)
 )

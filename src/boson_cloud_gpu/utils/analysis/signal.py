@@ -288,7 +288,7 @@ extern "C"{
 preprocessing_module = cupy.RawModule(code=_preprocessing_module)
 
 
-def distance(positions: NDArray):
+def ker_distance(positions: NDArray):
     # Computing distances
     distance_kernel = cupy.RawKernel(
         r"""
@@ -319,6 +319,14 @@ def distance(positions: NDArray):
     distance_kernel(grid_size, block_size, (positions, n_positions, distances))
 
     return distances
+
+
+def distance(positions):
+    return cupy.sqrt(
+        positions[:, 0] * positions[:, 0]
+        + positions[:, 1] * positions[:, 1]
+        + positions[:, 2] * positions[:, 2]
+    )
 
 
 def dispatch_kernel(kernel, nrows: int, ncols: int, *args):
