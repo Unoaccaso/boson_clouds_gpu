@@ -99,7 +99,7 @@ def main():
     del halo_sources_positions, core_sources_positions
 
     # -> Compute distances
-    distances = analysis.signal.distance(positions)
+    distances = analysis.signal.dispatch_distance_kernel(positions)
     del positions
 
     # ===========================================
@@ -112,8 +112,10 @@ def main():
         spins,
         distances,
     )
-    frequencies = signal.masked_frequencies
-    amplitudes = signal.masked_amplitudes
+    # frequencies = signal.unmasked_frequencies
+    # amplitudes = signal.unmasked_amplitudes
+
+    frequencies, amplitudes = signal.frequency_amplitude
 
     del signal
 

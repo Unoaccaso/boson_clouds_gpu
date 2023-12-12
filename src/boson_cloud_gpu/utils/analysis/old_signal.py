@@ -186,7 +186,7 @@ class OldSignal:
             & (self.spins > self.chi_c)
             & (self.df_dot > self.f_dot)
         )
-        return cupy.logical_not(is_detectable, dtype=settings.GENERAL["PRECISION"])
+        return cupy.logical_not(is_detectable)
 
     def plot(self):
         bh_ax, boson_ax = cupy.meshgrid(self.BH_mass, self.boson_mass)
