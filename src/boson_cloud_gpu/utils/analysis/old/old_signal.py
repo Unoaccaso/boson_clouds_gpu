@@ -1,11 +1,11 @@
 # ADDLICENSE
 
-from .. import generate
 
 import sys
 from functools import cached_property
 
-sys.path.append("../../")
+sys.path.append("../../../")
+
 import settings
 
 import cupy

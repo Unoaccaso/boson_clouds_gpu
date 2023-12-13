@@ -32,10 +32,8 @@ class CustomDistributions:
     def geomuniform(self):
         min = cupy.log10(self._min)
         max = cupy.log10(self._max)
-        exponents = cupy.random.uniform(
-            min, max, self._n_samples, dtype=settings.GENERAL["PRECISION"]
-        )
-        return cupy.power(10, exponents)
+        exponents = cupy.random.uniform(min, max, self._n_samples)
+        return cupy.power(10, exponents).astype(settings.GENERAL["PRECISION"])
 
     def kroupa(self):
         a = 2.3
@@ -49,10 +47,8 @@ class CustomDistributions:
         # Cupy does not have geomspace implementation yet
         min = cupy.log10(self._min)
         max = cupy.log10(self._max)
-        exponents = cupy.linspace(
-            min, max, self._n_samples, dtype=settings.GENERAL["PRECISION"]
-        )
-        return cupy.power(10, exponents)
+        exponents = cupy.linspace(min, max, self._n_samples)
+        return cupy.power(10, exponents).astype(settings.GENERAL["PRECISION"])
 
     def linspace(self):
         return cupy.linspace(
@@ -66,8 +62,8 @@ class CustomDistributions:
 
     def constant(self):
         warnings.warn("Min value will be used as constant value, max is ignored.")
-        return (
-            cupy.zeros(self._n_samples, dtype=settings.GENERAL["PRECISION"]) + self._min
+        return (cupy.zeros(self._n_samples) + self._min).astype(
+            settings.GENERAL["PRECISION"]
         )
 
 

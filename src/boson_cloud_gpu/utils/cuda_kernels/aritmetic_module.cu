@@ -12,20 +12,20 @@ extern "C" {
 #define t_obs 365 * 86400 * duty
 #define NAN 0.0 / 0.0
 
-__global__ void alpha(const float *bh_mass, const float *boson_mass, const int nrows,
-                      const int ncols, float *_alpha) {
+__global__ void alpha(const float *bh_mass, const float *boson_mass,
+                      const int nrows, const int ncols, float *_alpha) {
 
   int x_abs = threadIdx.x + blockDim.x * blockIdx.x;
   int y_abs = threadIdx.y + blockDim.y * blockIdx.y;
 
   if ((x_abs < ncols) && (y_abs < nrows)) {
-    _alpha[x_abs + ncols * y_abs] =
-        G / (c * c * c * hbar) * 2e30 * bh_mass[x_abs] * boson_mass[y_abs] * onev;
+    _alpha[x_abs + ncols * y_abs] = G / (c * c * c * hbar) * 2e30 *
+                                    bh_mass[x_abs] * boson_mass[y_abs] * onev;
   }
 }
 
-__global__ void f_dot(const float *alpha, const float *boson_mass, const int nrows,
-                      const int ncols, float *f_dot) {
+__global__ void f_dot(const float *alpha, const float *boson_mass,
+                      const int nrows, const int ncols, float *f_dot) {
 
   int x_abs = threadIdx.x + blockDim.x * blockIdx.x;
   int y_abs = threadIdx.y + blockDim.y * blockIdx.y;
@@ -62,8 +62,9 @@ __global__ void df_dot(const float *frequency, const int nrows, const int ncols,
   }
 }
 
-__global__ void tau_inst(const float *bh_mass, const float *spin, const float *alpha,
-                         const int nrows, const int ncols, float *tau_inst) {
+__global__ void tau_inst(const float *bh_mass, const float *spin,
+                         const float *alpha, const int nrows, const int ncols,
+                         float *tau_inst) {
 
   int x_abs = threadIdx.x + blockDim.x * blockIdx.x;
   int y_abs = threadIdx.y + blockDim.y * blockIdx.y;
@@ -83,8 +84,9 @@ __global__ void tau_inst(const float *bh_mass, const float *spin, const float *a
   }
 }
 
-__global__ void tau_gw(const float *bh_mass, const float *spin, const float *alpha,
-                       const int nrows, const int ncols, float *tau_gw) {
+__global__ void tau_gw(const float *bh_mass, const float *spin,
+                       const float *alpha, const int nrows, const int ncols,
+                       float *tau_gw) {
 
   int x_abs = threadIdx.x + blockDim.x * blockIdx.x;
   int y_abs = threadIdx.y + blockDim.y * blockIdx.y;
@@ -116,7 +118,8 @@ __global__ void chi_c(const float *alpha, const int nrows, const int ncols,
   }
 }
 
-__global__ void frequency_at_detector(const float *bh_mass, const float *boson_mass,
+__global__ void frequency_at_detector(const float *bh_mass,
+                                      const float *boson_mass,
                                       const float *f_dot, const float *tau_inst,
                                       const float *bh_age_sec, const int nrows,
                                       const int ncols, float *frequency) {
@@ -131,17 +134,17 @@ __global__ void frequency_at_detector(const float *bh_mass, const float *boson_m
                  (bh_mass[x_abs] / 10) * (boson_mass[y_abs] / 1.e-12));
 
     frequency[x_abs + ncols * y_abs] =
-        emitted_freq + f_dot[x_abs + ncols * y_abs] *
-                           (bh_age_sec[x_abs] - tau_inst[x_abs + ncols * y_abs]);
+        emitted_freq +
+        f_dot[x_abs + ncols * y_abs] *
+            (bh_age_sec[x_abs] - tau_inst[x_abs + ncols * y_abs]);
   }
 }
 
-__global__ void amplitude_at_detector(const float *bh_mass, const float *boson_mass,
-                                      const float *spin, const float *bh_age_sec,
-                                      const float *distance, const float *alpha,
-                                      const float *tau_inst, const float *tau_gw,
-                                      const float *chi_c, const int nrows,
-                                      const int ncols, float *amplitude) {
+__global__ void amplitude_at_detector(
+    const float *bh_mass, const float *boson_mass, const float *spin,
+    const float *bh_age_sec, const float *distance, const float *alpha,
+    const float *tau_inst, const float *tau_gw, const float *chi_c,
+    const int nrows, const int ncols, float *amplitude) {
 
   int x_abs = threadIdx.x + blockDim.x * blockIdx.x;
   int y_abs = threadIdx.y + blockDim.y * blockIdx.y;
@@ -156,47 +159,15 @@ __global__ void amplitude_at_detector(const float *bh_mass, const float *boson_m
     }
     alpha_7 /= alpha[x_abs + ncols * y_abs] / 0.1;
 
-    float timefactor = (1 + (bh_age_sec[x_abs] - tau_inst[x_abs + ncols * y_abs]) /
-                                tau_gw[x_abs + ncols * y_abs]);
+    float timefactor =
+        (1 + (bh_age_sec[x_abs] - tau_inst[x_abs + ncols * y_abs]) /
+                 tau_gw[x_abs + ncols * y_abs]);
 
     float amp_at_1kpc = 3.0e-24 / 10 * bh_mass[x_abs] * alpha_7 *
                         (spin[x_abs] - chi_c[x_abs + ncols * y_abs]) / 0.5;
 
-    amplitude[x_abs + ncols * y_abs] = amp_at_1kpc / (timefactor * distance[x_abs]);
-  }
-}
-
-__global__ void build_mask(const float *frequency, const float *tau_gw,
-                           const float *tau_inst, const float *bh_age_sec,
-                           const float *alpha, const float *spin, const float *chi_c,
-                           const float *f_dot, const float *df_dot, const int nrows,
-                           const int ncols, float *masked_array) {
-
-  int x_abs = threadIdx.x + blockDim.x * blockIdx.x;
-  int y_abs = threadIdx.y + blockDim.y * blockIdx.y;
-
-  if ((x_abs < ncols) && (y_abs < nrows)) {
-    if ((tau_gw[x_abs + ncols * y_abs] < 10 * bh_age_sec[x_abs]) ||
-        (10 * tau_inst[x_abs + ncols * y_abs] > bh_age_sec[x_abs]) ||
-        (alpha[x_abs + ncols * y_abs] > 0.1) ||
-        (frequency[x_abs + ncols * y_abs] < 20.) ||
-        (frequency[x_abs + ncols * y_abs] > 2048.) ||
-        (10 * tau_inst[x_abs + ncols * y_abs] > tau_gw[x_abs + ncols * y_abs]) ||
-        (spin[x_abs] < chi_c[x_abs + ncols * y_abs]) ||
-        (df_dot[x_abs + ncols * y_abs] < f_dot[x_abs + ncols * y_abs])) {
-      masked_array[x_abs + ncols * y_abs] = 0;
-    }
-  }
-}
-
-__global__ void apply_mask(const float *arr, const float *mask, const int nrows,
-                           const int ncols, float *out) {
-
-  int x_abs = threadIdx.x + blockDim.x * blockIdx.x;
-  int y_abs = threadIdx.y + blockDim.y * blockIdx.y;
-
-  if ((x_abs < ncols) && (y_abs < nrows)) {
-    out[x_abs + ncols * y_abs] = arr[x_abs + ncols * y_abs] * mask[x_abs + ncols * y_abs];
+    amplitude[x_abs + ncols * y_abs] =
+        amp_at_1kpc / (timefactor * distance[x_abs]);
   }
 }
 }

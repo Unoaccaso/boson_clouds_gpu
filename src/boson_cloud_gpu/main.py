@@ -33,7 +33,7 @@ def main():
     ).kroupa()
 
     # ====== Spins ======
-    spins = generate.physics.Spins(
+    BH_spins = generate.physics.Spins(
         N_sources,
         settings.SIMULATION["SPIN_MIN"],
         settings.SIMULATION["SPIN_MAX"],
@@ -61,7 +61,9 @@ def main():
     # ).constant()
     # -> The order of concatenation is IMPORTANT.
     # BHs in core and halo have different characteristics
-    BH_ages = cupy.concatenate((cluster_BH_ages, core_BH_ages))
+    BH_ages_yrs = cupy.concatenate(
+        (cluster_BH_ages, core_BH_ages), dtype=settings.GENERAL["PRECISION"]
+    )
 
     # -------------------------------------------------------------------------
 
@@ -105,27 +107,25 @@ def main():
     # ===========================================
     # ========== Compute Frequencies ============
     # ===========================================
-    signal = analysis.Signal(
-        boson_masses,
+    # signal = analysis.Signal(
+    #     boson_masses,
+    #     BH_masses,
+    #     BH_ages,
+    #     spins,
+    #     distances,
+    # )
+    # # frequencies = signal.unmasked_frequencies
+    # # amplitudes = signal.unmasked_amplitudes
+
+    # frequencies, amplitudes = signal.get_signals()
+
+    frequencies, amplitudes = analysis.generate_signals(
         BH_masses,
-        BH_ages,
-        spins,
+        BH_ages_yrs,
+        BH_spins,
         distances,
+        boson_masses,
     )
-    # frequencies = signal.unmasked_frequencies
-    # amplitudes = signal.unmasked_amplitudes
-
-    frequencies, amplitudes = signal.frequency_amplitude
-
-    del signal
-
-    """ n = 700
-    frequencies = cupy.asnumpy(amplitudes)
-    plt.hist(frequencies[n][frequencies[n] > 0], 100)
-    plt.yscale("log")
-    plt.xscale("log")
-    plt.show()
-    """
 
 
 if __name__ == "__main__":
