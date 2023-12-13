@@ -1,6 +1,18 @@
 
 /*
-    CUDA ONLY SUPPORTS SINGLE PRECISION MATH!!
+Copyright(C) 2023
+Riccardo Felicetti(felicettiriccardo1 @gmail.com)
+
+This program is free software : you can redistribute it and / or modify
+it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE Version 3,        \
+    19 November 2007
+
+Copyright(C) 2007 Free Software Foundation, Inc.< https: // fsf.org/>
+Everyone is permitted to copy and distribute verbatim copies
+of this license document, but changing it is not allowed.
+
+You should have received a copy of theGNU AFFERO GENERAL PUBLIC LICENSE
+along with this program.If not, see < http: // www.gnu.org/licenses/>.
 */
 
 extern "C" {
@@ -35,7 +47,6 @@ __global__ void get_signals(const float *bh_masses, const float *bh_ages_yrs,
 
   if ((x_abs < ncols) && (y_abs < nrows)) {
     unsigned int index = x_abs + ncols * y_abs;
-
     float bh_age_sec = bh_ages_yrs[x_abs] * 365 * 86400;
     float bh_mass = bh_masses[x_abs];
     float boson_mass = boson_masses[y_abs];
@@ -64,7 +75,7 @@ __global__ void get_signals(const float *bh_masses, const float *bh_ages_yrs,
 
     float tau_inst = 27 * 86400 / 10 * bh_mass / POW(alpha / 0.1, 9) / bh_spin;
 
-    if (tau_inst * 10 > bh_age_sec) {
+    if (tau_inst > bh_age_sec / 10) {
       out_frequencies[index] = NAN;
       out_amplitudes[index] = NAN;
       return;
@@ -120,7 +131,6 @@ __global__ void get_signals(const float *bh_masses, const float *bh_ages_yrs,
     // If arrived here all is masked
     out_frequencies[index] = frequency_at_detector;
     out_amplitudes[index] = amplitude_at_detector;
-    __syncthreads();
   }
 }
 }

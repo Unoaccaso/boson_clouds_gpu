@@ -1,24 +1,35 @@
-# ADDLICENSE
-
+# Copyright (C) 2023
+# Riccardo Felicetti (felicettiriccardo1@gmail.com)
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE Version 3, 19 November 2007
+#
+# Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
+# Everyone is permitted to copy and distribute verbatim copies
+# of this license document, but changing it is not allowed.
+#
+# You should have received a copy of theGNU AFFERO GENERAL PUBLIC LICENSE
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys
 import os.path
 
 PATH_TO_THIS = os.path.dirname(__file__)
-PATH_TO_KERNELS = PATH_TO_THIS + "/../cuda_kernels/"
 PATH_TO_MASTER = PATH_TO_THIS + "/../../"
+PATH_TO_KERNELS = PATH_TO_MASTER + "/utils/cuda_kernels/"
 sys.path.append(PATH_TO_MASTER)
 
-# standard packages
 import cupy
-
-# user libraries
 import configparser
-from .. import properties
+
+from utils.distributions import distributions
 
 PATH_TO_SETTINGS = PATH_TO_MASTER + "/config.ini"
 config = configparser.ConfigParser()
 config.read(PATH_TO_SETTINGS)
+
+
+from utils.properties import FLOAT_PRECISION, INT_PRECISION
 
 
 # global variables
@@ -27,13 +38,6 @@ BLOCK_SHAPE = (
     int(config["cuda"]["BlockSizeX"]),
     int(config["cuda"]["BlockSizeY"]),
 )
-
-FLOAT_PRECISION = properties.FloatPrecision[
-    config["numeric.precision"]["FloatPrecision"]
-].value
-INT_PRECISION = properties.IntPrecision[
-    config["numeric.precision"]["IntPrecision"]
-].value
 
 
 def get_signals(BH_masses, BH_ages_yrs, BH_spins, distances, boson_masses):
@@ -48,8 +52,8 @@ def get_signals(BH_masses, BH_ages_yrs, BH_spins, distances, boson_masses):
         ncols // block_size[0] + 1,
         nrows // block_size[1] + 1,
     )
-    out_frequencies = cupy.ones((ncols, nrows), dtype=FLOAT_PRECISION)
-    out_amplitudes = cupy.ones((ncols, nrows), dtype=FLOAT_PRECISION)
+    out_frequencies = cupy.ones((nrows, ncols), dtype=FLOAT_PRECISION)
+    out_amplitudes = cupy.ones((nrows, ncols), dtype=FLOAT_PRECISION)
     signal_kernel(
         grid_size,
         block_size,
