@@ -51,5 +51,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
-    # print(benchmark(main, n_repeat=100, n_warmup=5, name="gpu_v2.0"))
+    # main()
+    print(benchmark(main, n_repeat=100, n_warmup=5, name="gpu_v2.0"))
