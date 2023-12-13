@@ -4,40 +4,46 @@
 import sys
 import os.path
 
+PATH_TO_THIS = os.path.dirname(__file__)
+PATH_TO_KERNELS = PATH_TO_THIS + "/../../cuda_kernels/"
+PATH_TO_MASTER = PATH_TO_THIS + "/../../../"
+sys.path.append(PATH_TO_MASTER)
 
-PATH_TO_KERNELS = os.path.join(os.path.dirname(__file__), "../cuda_kernels/")
-
-sys.path.append("../../../")
-import settings
-
+# standard packages
 import cupy
-from cupy.typing import NDArray
+
+# user libraries
+import configparser
+from utils import properties
+
+PATH_TO_SETTINGS = PATH_TO_MASTER + "/config.ini"
+config = configparser.ConfigParser()
+config.read(PATH_TO_SETTINGS)
 
 
-PRECISION = settings.GENERAL["PRECISION"]
+# global variables
 
+BLOCK_SHAPE = (
+    int(config["cuda"]["BlockSizeX"]),
+    int(config["cuda"]["BlockSizeY"]),
+)
 
-def dispatch_distance_kernel(positions: NDArray):
-    # Computing distances
-    with open(PATH_TO_KERNELS + "/distance_kernel.cu", "r") as cuda_kernel:
-        distance_kernel = cupy.RawKernel(cuda_kernel.read(), "distance")
-    n_positions = int(positions.shape[0])
-    distances = cupy.empty(n_positions, dtype=PRECISION)
-    block_size = (1, settings.CUDA["BLOCK_SIZE"][1])
-    grid_size = (1, n_positions // int(block_size[1]) + 1)
-    distance_kernel(grid_size, block_size, (positions, n_positions, distances))
-
-    return distances
+FLOAT_PRECISION = properties.FloatPrecision[
+    config["numeric.precision"]["FloatPrecision"]
+].value
+INT_PRECISION = properties.IntPrecision[
+    config["numeric.precision"]["IntPrecision"]
+].value
 
 
 class Signal:
     def __init__(
         self,
-        boson_mass: NDArray,
-        BH_mass: NDArray,
-        BH_ages_yrs: NDArray,
-        spins: NDArray,
-        distance: NDArray,
+        boson_mass,
+        BH_mass,
+        BH_ages_yrs,
+        spins,
+        distance,
         filter: bool = True,
     ) -> None:
         self._spins = spins
@@ -51,7 +57,6 @@ class Signal:
 
         self.preprocessing_module = self.get_preprocessing_module()
         self.alpha = self.compute_alpha()
-        print(self.alpha)
         self.f_dot = self.compute_f_dot()
         self.df_dot = self.compute_df_dot()
         self.tau_inst = self.compute_tau_inst()
@@ -82,13 +87,13 @@ class Signal:
         return cuda_module
 
     def out_var(self):
-        return cupy.empty((self.nrows, self.ncols), dtype=PRECISION)
+        return cupy.empty((self.nrows, self.ncols), dtype=FLOAT_PRECISION)
 
     def df_dot(self):
         df_dot_kernel = self.preprocessing_module.get_function("df_dot")
         _df_dot = self.dispatch_aritm_operation_kernel(
             df_dot_kernel,
-            self.frequency_at_detector.astype(PRECISION),
+            self.frequency_at_detector.astype(FLOAT_PRECISION),
         )
 
         return _df_dot
@@ -97,18 +102,18 @@ class Signal:
         alpha_kernel = self.preprocessing_module.get_function("alpha")
         _alpha = self.dispatch_aritm_operation_kernel(
             alpha_kernel,
-            self.BH_mass.astype(PRECISION),
-            self.boson_mass.astype(PRECISION),
+            self.BH_mass.astype(FLOAT_PRECISION),
+            self.boson_mass.astype(FLOAT_PRECISION),
         )
 
-        return _alpha.astype(PRECISION)
+        return _alpha.astype(FLOAT_PRECISION)
 
     def compute_f_dot(self):
         f_dot_kernel = self.preprocessing_module.get_function("f_dot")
         _f_dot = self.dispatch_aritm_operation_kernel(
             f_dot_kernel,
-            self.alpha.astype(PRECISION),
-            self.boson_mass.astype(PRECISION),
+            self.alpha.astype(FLOAT_PRECISION),
+            self.boson_mass.astype(FLOAT_PRECISION),
         )
 
         return _f_dot
@@ -118,7 +123,7 @@ class Signal:
         df_dot_kernel = self.preprocessing_module.get_function("df_dot")
         _df_dot = self.dispatch_aritm_operation_kernel(
             df_dot_kernel,
-            self.frequency_at_detector.astype(PRECISION),
+            self.frequency_at_detector.astype(FLOAT_PRECISION),
         )
 
         return _df_dot
@@ -127,9 +132,9 @@ class Signal:
         tau_inst_kernel = self.preprocessing_module.get_function("tau_inst")
         _tau_inst = self.dispatch_aritm_operation_kernel(
             tau_inst_kernel,
-            self.BH_mass.astype(PRECISION),
-            self.spins.astype(PRECISION),
-            self.alpha.astype(PRECISION),
+            self.BH_mass.astype(FLOAT_PRECISION),
+            self.spins.astype(FLOAT_PRECISION),
+            self.alpha.astype(FLOAT_PRECISION),
         )
 
         return _tau_inst
@@ -138,9 +143,9 @@ class Signal:
         tau_gw_kernel = self.preprocessing_module.get_function("tau_gw")
         _tau_gw = self.dispatch_aritm_operation_kernel(
             tau_gw_kernel,
-            self.BH_mass.astype(PRECISION),
-            self.spins.astype(PRECISION),
-            self.alpha.astype(PRECISION),
+            self.BH_mass.astype(FLOAT_PRECISION),
+            self.spins.astype(FLOAT_PRECISION),
+            self.alpha.astype(FLOAT_PRECISION),
         )
 
         return _tau_gw
@@ -149,7 +154,7 @@ class Signal:
         chi_c_kernel = self.preprocessing_module.get_function("chi_c")
         _chi_c = self.dispatch_aritm_operation_kernel(
             chi_c_kernel,
-            self.alpha.astype(PRECISION),
+            self.alpha.astype(FLOAT_PRECISION),
         )
 
         return _chi_c
@@ -160,11 +165,11 @@ class Signal:
         )
         _frequency = self.dispatch_aritm_operation_kernel(
             frequency_kernel,
-            self.BH_mass.astype(PRECISION),
-            self.boson_mass.astype(PRECISION),
-            self.f_dot.astype(PRECISION),
-            self.tau_inst.astype(PRECISION),
-            self.BH_ages_sec.astype(PRECISION),
+            self.BH_mass.astype(FLOAT_PRECISION),
+            self.boson_mass.astype(FLOAT_PRECISION),
+            self.f_dot.astype(FLOAT_PRECISION),
+            self.tau_inst.astype(FLOAT_PRECISION),
+            self.BH_ages_sec.astype(FLOAT_PRECISION),
         )
 
         return _frequency
@@ -175,15 +180,15 @@ class Signal:
         )
         _amplitude = self.dispatch_aritm_operation_kernel(
             amplitude_kernel,
-            self.BH_mass.astype(PRECISION),
-            self.boson_mass.astype(PRECISION),
-            self.spins.astype(PRECISION),
-            self.BH_ages_sec.astype(PRECISION),
-            self.distance.astype(PRECISION),
-            self.alpha.astype(PRECISION),
-            self.tau_inst.astype(PRECISION),
-            self.tau_gw.astype(PRECISION),
-            self.chi_c.astype(PRECISION),
+            self.BH_mass.astype(FLOAT_PRECISION),
+            self.boson_mass.astype(FLOAT_PRECISION),
+            self.spins.astype(FLOAT_PRECISION),
+            self.BH_ages_sec.astype(FLOAT_PRECISION),
+            self.distance.astype(FLOAT_PRECISION),
+            self.alpha.astype(FLOAT_PRECISION),
+            self.tau_inst.astype(FLOAT_PRECISION),
+            self.tau_gw.astype(FLOAT_PRECISION),
+            self.chi_c.astype(FLOAT_PRECISION),
         )
 
         return _amplitude
@@ -200,7 +205,7 @@ class Signal:
         with open(PATH_TO_KERNELS + "/mask_kernel.cu", "r") as cuda_kernel:
             mask_kernel = cupy.RawKernel(cuda_kernel.read(), "mask_array")
 
-        block_size = settings.CUDA["BLOCK_SIZE"]
+        block_size = BLOCK_SHAPE
         grid_size = (
             self.ncols // block_size[0] + 1,
             self.nrows // block_size[1] + 1,
@@ -229,7 +234,7 @@ class Signal:
         return (masked_frequency, masked_amplitude)
 
     def dispatch_aritm_operation_kernel(self, kernel, *args):
-        block_size = settings.CUDA["BLOCK_SIZE"]
+        block_size = BLOCK_SHAPE
 
         grid_size = (
             self.ncols // block_size[0] + 1,

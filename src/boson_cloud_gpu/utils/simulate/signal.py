@@ -14,7 +14,7 @@ import cupy
 
 # user libraries
 import configparser
-from . import properties
+from .. import properties
 
 PATH_TO_SETTINGS = PATH_TO_MASTER + "/config.ini"
 config = configparser.ConfigParser()
@@ -36,12 +36,12 @@ INT_PRECISION = properties.IntPrecision[
 ].value
 
 
-def generate_signals(BH_masses, BH_ages_yrs, BH_spins, distances, boson_masses):
+def get_signals(BH_masses, BH_ages_yrs, BH_spins, distances, boson_masses):
     preprocessing_module = get_preprocessing_module("signal_kernel.cu")
     signal_kernel = preprocessing_module.get_function("get_signals")
 
-    ncols = len(BH_masses)
-    nrows = len(boson_masses)
+    ncols = BH_masses.shape[0]
+    nrows = boson_masses.shape[0]
     block_size = BLOCK_SHAPE
 
     grid_size = (

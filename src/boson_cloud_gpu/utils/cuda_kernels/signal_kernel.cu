@@ -5,17 +5,20 @@
 
 extern "C" {
 
-#define G 6.6743e-11
-#define C 299792458.0
-#define HBAR 1.0545718176461565e-34
-#define m_sun 1.988409870698051e+30
-#define om0 7.27220521664304e-05
-#define R0 5.5e6
-#define ONEV 1.60217653e-19
-#define F_INT 1e30
-#define DUTY 0.7
-#define T_OBS 365 * 86400 * DUTY
+#define G (float)(6.6743e-11)
+#define PI (float)(3.14159265)
+#define C (float)(299792458.0)
+#define HBAR (float)(1.05457182e-34)
+#define m_sun (float)(1.98840987e+30)
+#define OM0 (float)(7.2722052e-05)
+#define R0 (float)(5.5e6)
+#define ONEV (float)(1.6021765e-19)
+#define F_INT (float)(1e30)
+#define DUTY (float)(0.7)
+#define T_OBS (float)(365 * 86400 * DUTY)
 #define NAN 0.0 / 0.0
+
+#define POW powf
 
 #define ALPHA_MAX 0.1
 #define FREQ_MAX 2000
@@ -31,7 +34,7 @@ __global__ void get_signals(const float *bh_masses, const float *bh_ages_yrs,
   int y_abs = threadIdx.y + blockDim.y * blockIdx.y;
 
   if ((x_abs < ncols) && (y_abs < nrows)) {
-    int index = x_abs + ncols * y_abs;
+    unsigned int index = x_abs + ncols * y_abs;
 
     float bh_age_sec = bh_ages_yrs[x_abs] * 365 * 86400;
     float bh_mass = bh_masses[x_abs];
@@ -53,12 +56,13 @@ __global__ void get_signals(const float *bh_masses, const float *bh_ages_yrs,
       return;
     }
 
-    float f_dot = 7e-15 + powf(1e-10 * (1e17 / F_INT), 4) *
-                              powf(alpha / 0.1, 17) * (boson_mass / 1.0e-12) *
-                              (boson_mass / 1.0e-12);
+    float f_dot = 7e-15 * POW(alpha / 0.1, 17) * POW(boson_mass / 1.0e-12, 2);
+    float f_dot2 = 1e-10 * POW(1E17 / F_INT, 4) * POW(alpha / 0.1, 17) *
+                   POW(boson_mass / 1.0e-12, 2);
 
-    float tau_inst =
-        27 * 86400 / 10 * bh_mass / powf(alpha / 0.1, 9) / bh_spins[x_abs];
+    f_dot += f_dot2;
+
+    float tau_inst = 27 * 86400 / 10 * bh_mass / POW(alpha / 0.1, 9) / bh_spin;
 
     if (tau_inst * 10 > bh_age_sec) {
       out_frequencies[index] = NAN;
@@ -67,7 +71,7 @@ __global__ void get_signals(const float *bh_masses, const float *bh_ages_yrs,
     }
 
     float tau_gw =
-        27 * 86400 / 10 * bh_mass / powf(alpha / 0.1, 15) / bh_spins[x_abs];
+        6.5E4 * 365 * 86400 * bh_mass / 10 / POW(alpha / 0.1, 15) / bh_spin;
 
     if ((tau_gw < 10 * bh_age_sec) || (10 * tau_inst > tau_gw)) {
       out_frequencies[index] = NAN;
@@ -77,7 +81,16 @@ __global__ void get_signals(const float *bh_masses, const float *bh_ages_yrs,
 
     float frequency_at_source =
         483 * (boson_mass / 1.0e-12) *
-        (1 - 0.0056 / 8 * powf((bh_mass / 10) * (boson_mass / 1.e-12), 2));
+        (1 - 0.0056 / 8 * POW((bh_mass / 10) * (boson_mass / 1.e-12), 2));
+
+    float freq_max = C * C * C / (2 * PI * G * 2e30 * bh_mass) * bh_spin /
+                     (1 + sqrtf(1 - bh_spin * bh_spin));
+
+    if (frequency_at_source > freq_max) {
+      out_frequencies[index] = NAN;
+      out_amplitudes[index] = NAN;
+      return;
+    }
 
     float frequency_at_detector =
         frequency_at_source + f_dot * (bh_age_sec - tau_inst);
@@ -89,8 +102,8 @@ __global__ void get_signals(const float *bh_masses, const float *bh_ages_yrs,
       return;
     }
 
-    float ceiled = ceil(frequency_at_detector / 10.) * 10.;
-    float dfr = om0 * sqrtf(2 * ceiled * R0 / C);
+    float ceiled = ceil(frequency_at_detector / 10) * 10;
+    float dfr = OM0 * sqrtf(2 * ceiled * R0 / C);
     float df_dot = dfr / (2 * T_OBS / DUTY);
 
     if (df_dot < f_dot) {
@@ -100,13 +113,14 @@ __global__ void get_signals(const float *bh_masses, const float *bh_ages_yrs,
     }
 
     float amplitude_at_source =
-        3.0e-24 / 10 * bh_mass * powf(alpha / 0.1, 7) * (bh_spin - chi_c) / 0.5;
+        3.0e-24 / 10 * bh_mass * POW(alpha / 0.1, 7) * (bh_spin - chi_c) / 0.5;
     float timefactor = (1 + (bh_age_sec - tau_inst) / tau_gw);
     float amplitude_at_detector = amplitude_at_source / (timefactor * distance);
 
     // If arrived here all is masked
     out_frequencies[index] = frequency_at_detector;
     out_amplitudes[index] = amplitude_at_detector;
+    __syncthreads();
   }
 }
 }

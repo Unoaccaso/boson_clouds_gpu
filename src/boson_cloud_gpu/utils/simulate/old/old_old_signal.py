@@ -1,15 +1,39 @@
 # ADDLICENSE
 
-
 import sys
+import os.path
+
+PATH_TO_THIS = os.path.dirname(__file__)
+PATH_TO_KERNELS = PATH_TO_THIS + "/../../cuda_kernels/"
+PATH_TO_MASTER = PATH_TO_THIS + "/../../../"
+sys.path.append(PATH_TO_MASTER)
+
+# standard packages
+import cupy
 from functools import cached_property
 
-sys.path.append("../../../")
+# user libraries
+import configparser
+from utils import properties
 
-import settings
+PATH_TO_SETTINGS = PATH_TO_MASTER + "/config.ini"
+config = configparser.ConfigParser()
+config.read(PATH_TO_SETTINGS)
 
-import cupy
-from cupy.typing import NDArray
+
+# global variables
+
+BLOCK_SHAPE = (
+    int(config["cuda"]["BlockSizeX"]),
+    int(config["cuda"]["BlockSizeY"]),
+)
+
+FLOAT_PRECISION = properties.FloatPrecision[
+    config["numeric.precision"]["FloatPrecision"]
+].value
+INT_PRECISION = properties.IntPrecision[
+    config["numeric.precision"]["IntPrecision"]
+].value
 
 
 from astropy.constants import (
@@ -25,22 +49,21 @@ HBAR = hbar.value
 C = c.value
 M_SUN = M_sun.value
 H = h.value
-OM0 = settings.CONSTANTS["OM0"]
-R0 = settings.CONSTANTS["R0"]
-TOBS = settings.CONSTANTS["TOBS"]
-DUTY = settings.CONSTANTS["DUTY"]
-ONEV = settings.CONSTANTS["ONEV"]
-PRECISION = settings.GENERAL["PRECISION"]
+OM0 = config["simulation.parameters"]["OM0"]
+R0 = config["simulation.parameters"]["R0"]
+TOBS = config["simulation.parameters"]["TOBS"]
+DUTY = config["simulation.parameters"]["DUTY"]
+ONEV = config["simulation.parameters"]["ONEV"]
 
 
 class OldSignal:
     def __init__(
         self,
-        boson_mass: NDArray,
-        BH_mass: NDArray,
-        BH_ages_yrs: NDArray,
-        spins: NDArray,
-        distance: NDArray,
+        boson_mass,
+        BH_mass,
+        BH_ages_yrs,
+        spins,
+        distance,
         filter: bool = True,
     ) -> None:
         self._spins = spins
@@ -110,7 +133,7 @@ class OldSignal:
     def alpha(self):
         return (
             G / (C**3 * HBAR) * 2e30 * self.BH_mass * self.boson_mass[:, None] * ONEV
-        ).astype(PRECISION)
+        ).astype(FLOAT_PRECISION)
 
     @cached_property
     def f_dot(self):
@@ -142,12 +165,12 @@ class OldSignal:
     def frequency_at_detector(self):
         second_order_correction = (
             0.0056 / 8 * 1e22 * (self.BH_mass_2 * self.boson_mass_2[:, cupy.newaxis])
-        ).astype(PRECISION)
+        ).astype(FLOAT_PRECISION)
         emitted_frequency = (
             483
             * (self.boson_mass[:, cupy.newaxis] / 1e-12)
             * (1 - second_order_correction)
-        ).astype(PRECISION)
+        ).astype(FLOAT_PRECISION)
         f_dot = self.f_dot
         tau_inst = self.tau_inst
 
