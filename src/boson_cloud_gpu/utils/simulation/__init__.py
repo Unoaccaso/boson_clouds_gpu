@@ -12,4 +12,4 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from .signal import get_signals, calculate_distances
+from .signal import get_signals

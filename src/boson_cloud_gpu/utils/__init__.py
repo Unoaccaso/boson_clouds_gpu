@@ -12,5 +12,5 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from . import generate, simulate, properties
+from . import generation, simulation, properties
 from .distributions import distributions

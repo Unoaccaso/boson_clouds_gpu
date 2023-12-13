@@ -50,12 +50,12 @@ __global__ void f_dot(const float *alpha, const float *boson_mass,
     }
     alpha_17 *= alpha[x_abs + ncols * y_abs] / 0.1;
 
-    float A = 1e-10 * (1e17 / f_int);
+    float A = (1e17 / f_int);
     float A_4 = A * A * A * A;
 
-    f_dot[x_abs + ncols * y_abs] = 7e-15 + A_4 * alpha_17 *
-                                               (boson_mass[y_abs] / 1.0e-12) *
-                                               (boson_mass[y_abs] / 1.0e-12);
+    f_dot[x_abs + ncols * y_abs] = (7e-15 + 1e-10 * A_4) * alpha_17 *
+                                   (boson_mass[y_abs] / 1.0e-12) *
+                                   (boson_mass[y_abs] / 1.0e-12);
   }
 }
 
@@ -144,12 +144,11 @@ __global__ void frequency_at_detector(const float *bh_mass,
         (1 - 0.0056 / 8 * (bh_mass[x_abs] / 10) * (boson_mass[y_abs] / 1.e-12) *
                  (bh_mass[x_abs] / 10) * (boson_mass[y_abs] / 1.e-12));
 
-    if ((emitted_freq > FREQ_MIN) && (emitted_freq < FREQ_MAX) &&
-        (bh_age_sec[x_abs] > 10 * tau_inst[index])) {
+    if (bh_age_sec[x_abs] / 10 > tau_inst[index]) {
       frequency[index] =
           emitted_freq + f_dot[index] * (bh_age_sec[x_abs] - tau_inst[index]);
     } else {
-      frequency[index] = NAN;
+      frequency[index] = 0;
     }
   }
 }

@@ -73,19 +73,6 @@ def get_signals(BH_masses, BH_ages_yrs, BH_spins, distances, boson_masses):
     return out_frequencies, out_amplitudes
 
 
-def calculate_distances(positions):
-    # DOCUMENT THIS
-    with open(PATH_TO_KERNELS + "/distance_kernel.cu", "r") as cuda_kernel:
-        distance_kernel = cupy.RawKernel(cuda_kernel.read(), "distance")
-    n_positions = int(positions.shape[0])
-    distances = cupy.empty(n_positions, dtype=FLOAT_PRECISION)
-    block_shape = (int(config["cuda"]["BlockSizeX"]),)
-    grid_shape = (n_positions // block_shape[0] + 1,)
-    distance_kernel(grid_shape, block_shape, (positions, n_positions, distances))
-
-    return distances
-
-
 def get_preprocessing_module(module: str):
     # DOCUMENT THIS
     with open(PATH_TO_KERNELS + "/" + module, "r") as cuda_module_file:

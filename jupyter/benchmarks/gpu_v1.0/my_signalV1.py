@@ -1,11 +1,22 @@
-# ADDLICENSE
+# Copyright (C) 2023
+# Riccardo Felicetti (felicettiriccardo1@gmail.com)
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE Version 3, 19 November 2007
+#
+# Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
+# Everyone is permitted to copy and distribute verbatim copies
+# of this license document, but changing it is not allowed.
+#
+# You should have received a copy of theGNU AFFERO GENERAL PUBLIC LICENSE
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 
 import sys
 import os.path
 
 PATH_TO_THIS = os.path.dirname(__file__)
-PATH_TO_KERNELS = PATH_TO_THIS + "/../../cuda_kernels/"
-PATH_TO_MASTER = PATH_TO_THIS + "/../../../"
+PATH_TO_MASTER = PATH_TO_THIS
 sys.path.append(PATH_TO_MASTER)
 
 # standard packages
@@ -14,7 +25,7 @@ from functools import cached_property
 
 # user libraries
 import configparser
-from utils import properties
+import properties
 
 PATH_TO_SETTINGS = PATH_TO_MASTER + "/config.ini"
 config = configparser.ConfigParser()
@@ -49,14 +60,14 @@ HBAR = hbar.value
 C = c.value
 M_SUN = M_sun.value
 H = h.value
-OM0 = config["simulation.parameters"]["OM0"]
-R0 = config["simulation.parameters"]["R0"]
-TOBS = config["simulation.parameters"]["TOBS"]
-DUTY = config["simulation.parameters"]["DUTY"]
-ONEV = config["simulation.parameters"]["ONEV"]
+OM0 = FLOAT_PRECISION(config["simulation.parameters"]["OM0"])
+R0 = FLOAT_PRECISION(config["simulation.parameters"]["R0"])
+TOBS = FLOAT_PRECISION(config["simulation.parameters"]["TOBS"])
+DUTY = FLOAT_PRECISION(config["simulation.parameters"]["DUTY"])
+ONEV = FLOAT_PRECISION(config["simulation.parameters"]["ONEV"])
 
 
-class OldSignal:
+class SignalV1:
     def __init__(
         self,
         boson_mass,

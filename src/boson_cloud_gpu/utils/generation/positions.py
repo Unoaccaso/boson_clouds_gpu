@@ -17,6 +17,7 @@ import os.path
 
 PATH_TO_THIS = os.path.dirname(__file__)
 PATH_TO_MASTER = PATH_TO_THIS + "/../../"
+PATH_TO_KERNELS = PATH_TO_MASTER + "/utils/cuda_kernels/"
 sys.path.append(PATH_TO_MASTER)
 
 import cupy
@@ -30,10 +31,6 @@ config.read(PATH_TO_SETTINGS)
 
 
 from utils.properties import FLOAT_PRECISION, INT_PRECISION
-
-
-def is_supported(item: str, supported_list: list[str]):
-    return item in supported_list
 
 
 def get_positions():
@@ -95,3 +92,16 @@ def merge_position_clusters(cluster_1, cluster_2):
         axis=0,
         dtype=FLOAT_PRECISION,
     )
+
+
+def calculate_distances(positions):
+    # DOCUMENT THIS
+    with open(PATH_TO_KERNELS + "/distance_kernel.cu", "r") as cuda_kernel:
+        distance_kernel = cupy.RawKernel(cuda_kernel.read(), "distance")
+    n_positions = int(positions.shape[0])
+    distances = cupy.empty(n_positions, dtype=FLOAT_PRECISION)
+    block_shape = (int(config["cuda"]["BlockSizeX"]),)
+    grid_shape = (n_positions // block_shape[0] + 1,)
+    distance_kernel(grid_shape, block_shape, (positions, n_positions, distances))
+
+    return distances

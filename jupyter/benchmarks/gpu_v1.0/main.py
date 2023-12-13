@@ -17,7 +17,7 @@ import os.path
 
 PATH_TO_THIS = os.path.dirname(__file__)
 
-from utils import generation, simulation
+# from ._signal import Signal
 
 import matplotlib.pyplot as plt
 
@@ -29,28 +29,28 @@ config.read(PATH_TO_THIS + "/config.ini")
 import cupy
 import numpy
 from cupyx.profiler import benchmark
+import positions, sources, bosons
 
-from utils.properties import FLOAT_PRECISION, INT_PRECISION
+import my_signalV1
+
+from properties import FLOAT_PRECISION, INT_PRECISION
 
 
 def main():
-    positions = generation.positions.get_positions()
-    distances = generation.calculate_distances(positions)
+    pos = positions.get_positions()
+    distances = positions.calculate_distances(pos)
 
-    bh_masses, bh_spins, bh_ages_yrs = generation.sources.get_sources()
-    boson_masses = generation.bosons.get_bosons()
+    bh_masses, bh_spins, bh_ages_yrs = sources.get_sources()
+    boson_masses = bosons.get_bosons()
 
-    frequencies, amplitudes = simulation.get_signals(
-        bh_masses,
-        bh_ages_yrs,
-        bh_spins,
-        distances,
-        boson_masses,
+    sig = my_signalV1.SignalV1(
+        boson_masses, bh_masses, bh_ages_yrs, bh_spins, distances
     )
 
-    # plt.hist(cupy.asnumpy(frequencies)[700])
+    frequency = sig.masked_frequencies
+    amplitude = sig.masked_amplitudes
 
 
 if __name__ == "__main__":
     main()
-    # print(benchmark(main, n_repeat=100, n_warmup=5, name="gpu_v3.0"))
+    # print(benchmark(main, n_repeat=100, n_warmup=5, name="gpu_v1.0"))

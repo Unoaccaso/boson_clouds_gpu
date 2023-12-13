@@ -84,7 +84,7 @@ __global__ void get_signals(const float *bh_masses, const float *bh_ages_yrs,
     float tau_gw =
         6.5E4 * 365 * 86400 * bh_mass / 10 / POW(alpha / 0.1, 15) / bh_spin;
 
-    if ((tau_gw < 10 * bh_age_sec) || (10 * tau_inst > tau_gw)) {
+    if ((tau_gw < 10 * bh_age_sec) || (tau_inst / 10 > tau_gw)) {
       out_frequencies[index] = NAN;
       out_amplitudes[index] = NAN;
       return;

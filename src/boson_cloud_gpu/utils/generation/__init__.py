@@ -13,3 +13,5 @@
 
 
 from . import sources, positions, bosons
+
+from .positions import calculate_distances
