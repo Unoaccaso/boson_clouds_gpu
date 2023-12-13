@@ -1,3 +1,2 @@
-from .new_signal import generate_signals
-from .signal import Signal
-from .old.old_signal import OldSignal
+from .signal import generate_signals
+from .old import old_signal, old_old_signal

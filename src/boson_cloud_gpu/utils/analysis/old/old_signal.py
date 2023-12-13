@@ -2,40 +2,35 @@
 
 
 import sys
-from functools import cached_property
+import os.path
+
+
+PATH_TO_KERNELS = os.path.join(os.path.dirname(__file__), "../cuda_kernels/")
 
 sys.path.append("../../../")
-
 import settings
 
 import cupy
 from cupy.typing import NDArray
 
-from numba import cuda
 
-
-from astropy.constants import (
-    G,
-    hbar,
-    M_sun,
-    c,
-    h,
-)
-
-G = G.value
-HBAR = hbar.value
-C = c.value
-M_SUN = M_sun.value
-H = h.value
-OM0 = settings.CONSTANTS["OM0"]
-R0 = settings.CONSTANTS["R0"]
-TOBS = settings.CONSTANTS["TOBS"]
-DUTY = settings.CONSTANTS["DUTY"]
-ONEV = settings.CONSTANTS["ONEV"]
 PRECISION = settings.GENERAL["PRECISION"]
 
 
-class OldSignal:
+def dispatch_distance_kernel(positions: NDArray):
+    # Computing distances
+    with open(PATH_TO_KERNELS + "/distance_kernel.cu", "r") as cuda_kernel:
+        distance_kernel = cupy.RawKernel(cuda_kernel.read(), "distance")
+    n_positions = int(positions.shape[0])
+    distances = cupy.empty(n_positions, dtype=PRECISION)
+    block_size = (1, settings.CUDA["BLOCK_SIZE"][1])
+    grid_size = (1, n_positions // int(block_size[1]) + 1)
+    distance_kernel(grid_size, block_size, (positions, n_positions, distances))
+
+    return distances
+
+
+class Signal:
     def __init__(
         self,
         boson_mass: NDArray,
@@ -50,9 +45,20 @@ class OldSignal:
         self._BH_mass = BH_mass
         self._boson_mass = boson_mass
         self._distance = distance
+        self.BH_ages_sec = BH_ages_yrs * 86400 * 365
+        self.nrows = len(self.boson_mass)
+        self.ncols = len(self.BH_mass)
 
-        # Compute all properties that have multiple calls in the code
-        self.BH_ages_sec = BH_ages_yrs * 365 * 86_400
+        self.preprocessing_module = self.get_preprocessing_module()
+        self.alpha = self.compute_alpha()
+        print(self.alpha)
+        self.f_dot = self.compute_f_dot()
+        self.df_dot = self.compute_df_dot()
+        self.tau_inst = self.compute_tau_inst()
+        self.tau_gw = self.compute_tau_gw()
+        self.frequency_at_detector = self.compute_frequency_at_detector()
+        self.chi_c = self.compute_chi_c()
+        self.amplitude_at_detector = self.compute_amplitude_at_detector()
 
     @property
     def distance(self):
@@ -70,123 +76,171 @@ class OldSignal:
     def spins(self):
         return self._spins
 
-    @property
+    def get_preprocessing_module(self):
+        with open(PATH_TO_KERNELS + "/aritmetic_module.cu", "r") as cuda_module_file:
+            cuda_module = cupy.RawModule(code=cuda_module_file.read())
+        return cuda_module
+
+    def out_var(self):
+        return cupy.empty((self.nrows, self.ncols), dtype=PRECISION)
+
     def df_dot(self):
-        #! TODO: CONTROLLARE CHE QUESTO DFDOT VA CALCOLATO SULLE FREQUENZE AL DETECTOR
-        frequency_at_detector = self.frequency_at_detector
-        return (
-            OM0
-            * cupy.sqrt(2 * cupy.ceil(frequency_at_detector / 10) * 10 * R0 / C)
-            / (2 * TOBS / DUTY)
+        df_dot_kernel = self.preprocessing_module.get_function("df_dot")
+        _df_dot = self.dispatch_aritm_operation_kernel(
+            df_dot_kernel,
+            self.frequency_at_detector.astype(PRECISION),
         )
+
+        return _df_dot
+
+    def compute_alpha(self):
+        alpha_kernel = self.preprocessing_module.get_function("alpha")
+        _alpha = self.dispatch_aritm_operation_kernel(
+            alpha_kernel,
+            self.BH_mass.astype(PRECISION),
+            self.boson_mass.astype(PRECISION),
+        )
+
+        return _alpha.astype(PRECISION)
+
+    def compute_f_dot(self):
+        f_dot_kernel = self.preprocessing_module.get_function("f_dot")
+        _f_dot = self.dispatch_aritm_operation_kernel(
+            f_dot_kernel,
+            self.alpha.astype(PRECISION),
+            self.boson_mass.astype(PRECISION),
+        )
+
+        return _f_dot
+
+    def compute_df_dot(self):
+        #! TODO: CONTROLLARE CHE QUESTO DFDOT VA CALCOLATO SULLE FREQUENZE AL DETECTOR
+        df_dot_kernel = self.preprocessing_module.get_function("df_dot")
+        _df_dot = self.dispatch_aritm_operation_kernel(
+            df_dot_kernel,
+            self.frequency_at_detector.astype(PRECISION),
+        )
+
+        return _df_dot
+
+    def compute_tau_inst(self):
+        tau_inst_kernel = self.preprocessing_module.get_function("tau_inst")
+        _tau_inst = self.dispatch_aritm_operation_kernel(
+            tau_inst_kernel,
+            self.BH_mass.astype(PRECISION),
+            self.spins.astype(PRECISION),
+            self.alpha.astype(PRECISION),
+        )
+
+        return _tau_inst
+
+    def compute_tau_gw(self):
+        tau_gw_kernel = self.preprocessing_module.get_function("tau_gw")
+        _tau_gw = self.dispatch_aritm_operation_kernel(
+            tau_gw_kernel,
+            self.BH_mass.astype(PRECISION),
+            self.spins.astype(PRECISION),
+            self.alpha.astype(PRECISION),
+        )
+
+        return _tau_gw
+
+    def compute_chi_c(self):
+        chi_c_kernel = self.preprocessing_module.get_function("chi_c")
+        _chi_c = self.dispatch_aritm_operation_kernel(
+            chi_c_kernel,
+            self.alpha.astype(PRECISION),
+        )
+
+        return _chi_c
+
+    def compute_frequency_at_detector(self):
+        frequency_kernel = self.preprocessing_module.get_function(
+            "frequency_at_detector"
+        )
+        _frequency = self.dispatch_aritm_operation_kernel(
+            frequency_kernel,
+            self.BH_mass.astype(PRECISION),
+            self.boson_mass.astype(PRECISION),
+            self.f_dot.astype(PRECISION),
+            self.tau_inst.astype(PRECISION),
+            self.BH_ages_sec.astype(PRECISION),
+        )
+
+        return _frequency
+
+    def compute_amplitude_at_detector(self):
+        amplitude_kernel = self.preprocessing_module.get_function(
+            "amplitude_at_detector"
+        )
+        _amplitude = self.dispatch_aritm_operation_kernel(
+            amplitude_kernel,
+            self.BH_mass.astype(PRECISION),
+            self.boson_mass.astype(PRECISION),
+            self.spins.astype(PRECISION),
+            self.BH_ages_sec.astype(PRECISION),
+            self.distance.astype(PRECISION),
+            self.alpha.astype(PRECISION),
+            self.tau_inst.astype(PRECISION),
+            self.tau_gw.astype(PRECISION),
+            self.chi_c.astype(PRECISION),
+        )
+
+        return _amplitude
 
     @property
     def unmasked_frequencies(self):
         return self.frequency_at_detector
 
     @property
-    def masked_frequencies(self):
-        out_values = self.frequency_at_detector
-        out_values[self.undetectable_values_mask] = cupy.nan
-        return out_values
-
-    @property
     def unmasked_amplitudes(self):
         return self.amplitude_at_detector
 
-    @property
-    def masked_amplitudes(self):
-        out_values = self.amplitude_at_detector
-        out_values[self.undetectable_values_mask] = cupy.nan
-        return out_values
+    def get_signals(self):
+        with open(PATH_TO_KERNELS + "/mask_kernel.cu", "r") as cuda_kernel:
+            mask_kernel = cupy.RawKernel(cuda_kernel.read(), "mask_array")
 
-    @cached_property
-    def BH_mass_2(self):
-        return cupy.power(self._BH_mass, 2)
-
-    @cached_property
-    def boson_mass_2(self):
-        return cupy.power(self._boson_mass, 2)
-
-    @cached_property
-    def alpha(self):
-        return (
-            G / (C**3 * HBAR) * 2e30 * self.BH_mass * self.boson_mass[:, None] * ONEV
-        ).astype(PRECISION)
-
-    @cached_property
-    def f_dot(self):
-        alpha = self.alpha
-        _alpha_17 = cupy.power(alpha / 0.1, 17)
-        return (
-            (7e-15 + 1e-10 * (1e17 / 1e30) ** 4)
-            * self.boson_mass_2[:, cupy.newaxis]
-            / 1e-24
-            * _alpha_17
+        block_size = settings.CUDA["BLOCK_SIZE"]
+        grid_size = (
+            self.ncols // block_size[0] + 1,
+            self.nrows // block_size[1] + 1,
+        )
+        masked_frequency = self.frequency_at_detector.copy()
+        masked_amplitude = self.amplitude_at_detector.compy()
+        mask_kernel(
+            grid_size,
+            block_size,
+            (
+                self.frequency_at_detector,
+                self.amplitude_at_detector,
+                self.tau_gw,
+                self.tau_inst,
+                self.BH_ages_sec,
+                self.alpha,
+                self.spins,
+                self.chi_c,
+                self.f_dot,
+                self.df_dot,
+                self.nrows,
+                self.ncols,
+            ),
         )
 
-    @cached_property
-    def tau_inst(self):
-        alpha = self.alpha
-        _alpha_9 = cupy.power(alpha / 0.1, 9)
-        return 27 * 86400 / 10.0 * self.BH_mass * (1 / _alpha_9) / self.spins
+        return (masked_frequency, masked_amplitude)
 
-    @cached_property
-    def tau_gw(self):
-        _alpha_15 = cupy.power(self.alpha / 0.1, 15)
-        return 6.5e4 * 365 * 86400 * self.BH_mass / 10 * (1 / _alpha_15) / self.spins
+    def dispatch_aritm_operation_kernel(self, kernel, *args):
+        block_size = settings.CUDA["BLOCK_SIZE"]
 
-    @cached_property
-    def chi_c(self):
-        return 4 * self.alpha / (1 + 4.0 * self.alpha**2)
-
-    @cached_property
-    def frequency_at_detector(self):
-        second_order_correction = (
-            0.0056 / 8 * 1e22 * (self.BH_mass_2 * self.boson_mass_2[:, cupy.newaxis])
-        ).astype(PRECISION)
-        emitted_frequency = (
-            483
-            * (self.boson_mass[:, cupy.newaxis] / 1e-12)
-            * (1 - second_order_correction)
-        ).astype(PRECISION)
-        f_dot = self.f_dot
-        tau_inst = self.tau_inst
-
-        frequency_at_detector = emitted_frequency + f_dot * (
-            self.BH_ages_sec - tau_inst
+        grid_size = (
+            self.ncols // block_size[0] + 1,
+            self.nrows // block_size[1] + 1,
         )
-        return frequency_at_detector
 
-    @cached_property
-    def amplitude_at_detector(self):
-        alpha_7 = cupy.power(self.alpha / 0.1, 7)
-        bh_mass = self.BH_mass
-        spin = self.spins
-        chi_c = self.chi_c
+        # The output variable is created but the elements ar not initialized
+        # one should be very sure that the kernel correctly populates the array.
+        kernel(grid_size, block_size, args + (self.nrows, self.ncols, self.out_var))
 
-        timefactor = 1 + (self.BH_ages_sec - self.tau_inst) / self.tau_gw
-
-        return (
-            1 / cupy.sqrt(3) * 3.0e-24 / 10 * bh_mass * alpha_7 * (spin - chi_c) / 0.5
-        ) / (timefactor * self.distance)
-
-    @cached_property
-    def undetectable_values_mask(self):
-        frequency = self.frequency_at_detector
-        tau_gw = self.tau_gw
-        tau_inst = self.tau_inst
-        is_detectable = cupy.array(
-            (tau_gw * 3 > self.BH_ages_sec)
-            & (self.alpha < 0.1)
-            & (frequency > 20)
-            & (frequency < 2048)
-            & (tau_inst < 10 * self.BH_ages_sec)
-            & (10 * tau_inst < tau_gw)
-            & (self.spins > self.chi_c)
-            & (self.df_dot > self.f_dot)
-        )
-        return cupy.logical_not(is_detectable)
+        return self.out_var
 
     def plot(self):
         bh_ax, boson_ax = cupy.meshgrid(self.BH_mass, self.boson_mass)

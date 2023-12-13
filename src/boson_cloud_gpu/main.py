@@ -101,7 +101,7 @@ def main():
     del halo_sources_positions, core_sources_positions
 
     # -> Compute distances
-    distances = analysis.signal.dispatch_distance_kernel(positions)
+    distances = analysis.signal.calculate_distances(positions)
     del positions
 
     # ===========================================
@@ -126,6 +126,8 @@ def main():
         distances,
         boson_masses,
     )
+
+    # plt.hist(cupy.asnumpy(frequencies[800]))
 
 
 if __name__ == "__main__":

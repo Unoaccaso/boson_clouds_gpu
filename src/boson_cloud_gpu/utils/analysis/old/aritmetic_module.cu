@@ -12,6 +12,10 @@ extern "C" {
 #define t_obs 365 * 86400 * duty
 #define NAN 0.0 / 0.0
 
+#define ALPHA_MAX 0.1
+#define FREQ_MAX 2000
+#define FREQ_MIN 20
+
 __global__ void alpha(const float *bh_mass, const float *boson_mass,
                       const int nrows, const int ncols, float *_alpha) {
 
@@ -19,8 +23,14 @@ __global__ void alpha(const float *bh_mass, const float *boson_mass,
   int y_abs = threadIdx.y + blockDim.y * blockIdx.y;
 
   if ((x_abs < ncols) && (y_abs < nrows)) {
-    _alpha[x_abs + ncols * y_abs] = G / (c * c * c * hbar) * 2e30 *
-                                    bh_mass[x_abs] * boson_mass[y_abs] * onev;
+    int index = x_abs + ncols * y_abs;
+    float alpha = G / (c * c * c * hbar) * 2e30 * bh_mass[x_abs] *
+                  boson_mass[y_abs] * onev;
+    if (alpha < ALPHA_MAX) {
+      _alpha[index] = alpha;
+    } else {
+      _alpha[index] = NAN;
+    }
   }
 }
 
@@ -128,15 +138,19 @@ __global__ void frequency_at_detector(const float *bh_mass,
   int y_abs = threadIdx.y + blockDim.y * blockIdx.y;
 
   if ((x_abs < ncols) && (y_abs < nrows)) {
+    int index = x_abs + ncols * y_abs;
     float emitted_freq =
         483 * (boson_mass[y_abs] / 1.0e-12) *
         (1 - 0.0056 / 8 * (bh_mass[x_abs] / 10) * (boson_mass[y_abs] / 1.e-12) *
                  (bh_mass[x_abs] / 10) * (boson_mass[y_abs] / 1.e-12));
 
-    frequency[x_abs + ncols * y_abs] =
-        emitted_freq +
-        f_dot[x_abs + ncols * y_abs] *
-            (bh_age_sec[x_abs] - tau_inst[x_abs + ncols * y_abs]);
+    if ((emitted_freq > FREQ_MIN) && (emitted_freq < FREQ_MAX) &&
+        (bh_age_sec[x_abs] > 10 * tau_inst[index])) {
+      frequency[index] =
+          emitted_freq + f_dot[index] * (bh_age_sec[x_abs] - tau_inst[index]);
+    } else {
+      frequency[index] = NAN;
+    }
   }
 }
 
