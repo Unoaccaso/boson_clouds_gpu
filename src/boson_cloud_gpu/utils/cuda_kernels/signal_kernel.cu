@@ -1,4 +1,3 @@
-
 /*
 Copyright(C) 2023
 Riccardo Felicetti(felicettiriccardo1 @gmail.com)
@@ -45,13 +44,19 @@ __global__ void get_signals(const float *bh_masses, const float *bh_ages_yrs,
   int x_abs = threadIdx.x + blockDim.x * blockIdx.x;
   int y_abs = threadIdx.y + blockDim.y * blockIdx.y;
 
+  __shared__ float bh_masses[blockDim.x], boson_masses[blockDim.y],
+      bh_spins[blockDim.x], distances[blockDim.x], bh_ages_sec[blockDim.x];
+
+  bh_ages_sec[threadIdx.x] = bh_ages_yrs[x_abs] * 365 * 86400;
+  bh_masses[threadIdx.x] = bh_masses[x_abs];
+  boson_masses[threadIdx.y] = boson_masses[y_abs];
+  bh_spins[threadIdx.x] = bh_spins[x_abs];
+  distances[threadIdx.x] = distances[x_abs];
+
   if ((x_abs < ncols) && (y_abs < nrows)) {
     unsigned int index = x_abs + ncols * y_abs;
-    float bh_age_sec = bh_ages_yrs[x_abs] * 365 * 86400;
-    float bh_mass = bh_masses[x_abs];
-    float boson_mass = boson_masses[y_abs];
-    float bh_spin = bh_spins[x_abs];
-    float distance = distances[x_abs];
+
+    float bh_mass = bh_masses[threadIdx.x];
 
     float alpha = G / (C * C * C * HBAR) * 2e30 * bh_mass * boson_mass * ONEV;
     if (alpha > ALPHA_MAX) {
