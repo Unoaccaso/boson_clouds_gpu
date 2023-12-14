@@ -1,4 +1,3 @@
-
 /*
 Copyright(C) 2023
 Riccardo Felicetti(felicettiriccardo1 @gmail.com)
@@ -36,6 +35,9 @@ extern "C" {
 #define FREQ_MAX 2000
 #define FREQ_MIN 20
 
+#define TILE_DIM_X 32
+#define TILE_DIM_Y 32
+
 __global__ void get_signals(const float *bh_masses, const float *bh_ages_yrs,
                             const float *bh_spins, const float *distances,
                             const float *boson_masses, const int nrows,
@@ -45,13 +47,27 @@ __global__ void get_signals(const float *bh_masses, const float *bh_ages_yrs,
   int x_abs = threadIdx.x + blockDim.x * blockIdx.x;
   int y_abs = threadIdx.y + blockDim.y * blockIdx.y;
 
+  __shared__ float bh_masses_tile[TILE_DIM_X];
+  __shared__ float boson_masses_tile[TILE_DIM_Y];
+  __shared__ float bh_spins_tile[TILE_DIM_X];
+  __shared__ float distances_tile[TILE_DIM_X];
+  __shared__ float bh_ages_sec_tile[TILE_DIM_X];
+
+  bh_ages_sec_tile[threadIdx.x] = bh_ages_yrs[x_abs] * 365 * 86400;
+  bh_masses_tile[threadIdx.x] = bh_masses[x_abs];
+  boson_masses_tile[threadIdx.y] = boson_masses[y_abs];
+  bh_spins_tile[threadIdx.x] = bh_spins[x_abs];
+  distances_tile[threadIdx.x] = distances[x_abs];
+  __syncthreads();
+
   if ((x_abs < ncols) && (y_abs < nrows)) {
     unsigned int index = x_abs + ncols * y_abs;
-    float bh_age_sec = bh_ages_yrs[x_abs] * 365 * 86400;
-    float bh_mass = bh_masses[x_abs];
-    float boson_mass = boson_masses[y_abs];
-    float bh_spin = bh_spins[x_abs];
-    float distance = distances[x_abs];
+
+    float bh_mass = bh_masses_tile[threadIdx.x];
+    float boson_mass = boson_masses_tile[threadIdx.y];
+    float bh_spin = bh_spins_tile[threadIdx.x];
+    float distance = distances_tile[threadIdx.x];
+    float bh_age_sec = bh_ages_sec_tile[threadIdx.x];
 
     float alpha = G / (C * C * C * HBAR) * 2e30 * bh_mass * boson_mass * ONEV;
     if (alpha > ALPHA_MAX) {
