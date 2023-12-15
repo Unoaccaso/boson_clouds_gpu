@@ -45,19 +45,19 @@ def get_signals(BH_masses, BH_ages_yrs, BH_spins, distances, boson_masses):
 
     ncols = BH_masses.shape[0]
     nrows = boson_masses.shape[0]
-    block_size = BLOCK_SHAPE
+    block_shape = BLOCK_SHAPE
 
-    grid_size = (
-        ncols // block_size[0] + 1,
-        nrows // block_size[1] + 1,
+    grid_shape = (
+        ncols // block_shape[0] + 1,
+        nrows // block_shape[1] + 1,
     )
     # In frequencies we add one row to store the value of minimum frequency per boson,
     # to calculate histograms faster.
     out_frequencies = cupy.ones((nrows, ncols), dtype=FLOAT_PRECISION)
     out_amplitudes = cupy.ones((nrows, ncols), dtype=FLOAT_PRECISION)
     signal_kernel(
-        grid_size,
-        block_size,
+        grid_shape,
+        block_shape,
         (
             BH_masses,
             BH_ages_yrs,

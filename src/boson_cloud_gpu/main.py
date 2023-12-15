@@ -55,6 +55,9 @@ def main():
         10,
     )
 
+    # idx = 700
+    # plt.plot(cupy.asnumpy(bins)[idx], cupy.asnumpy(a=counts)[idx])
+
 
 if __name__ == "__main__":
     # main()

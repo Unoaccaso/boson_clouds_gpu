@@ -42,6 +42,82 @@ BLOCK_SHAPE = (
 from utils.common import FLOAT_PRECISION, INT_PRECISION
 
 
+def cupy_histograms(frequencies_gpu, amplitudes, t_fft, band_size: int):
+    mean_frequencies = cupy.nanmean(frequencies_gpu, axis=1).astype(FLOAT_PRECISION)
+
+    nbins = INT_PRECISION(band_size * t_fft)
+    nrows = INT_PRECISION(frequencies_gpu.shape[0])
+
+    bins_gpu = get_bins(
+        mean_frequencies,
+        band_size,
+        t_fft,
+        nbins,
+        nrows,
+    )
+    frequencies_cpu, bins_cpu = frequencies_gpu.get(), bins_gpu.get()
+
+    counts = histogram_along_axis_cpu(frequencies_cpu, bins_cpu)
+    return counts, bins_cpu[:, :-1]
+
+
+def cuda_histograms(frequencies_gpu, amplitudes_gpu, t_fft, band_size):
+    mean_frequencies = cupy.nanmean(frequencies_gpu, axis=1).astype(FLOAT_PRECISION)
+
+    nbins = INT_PRECISION(band_size * t_fft)
+    nrows = INT_PRECISION(frequencies_gpu.shape[0])
+    ncols = INT_PRECISION(frequencies_gpu.shape[1])
+
+    bins = get_bins(
+        mean_frequencies,
+        band_size,
+        t_fft,
+        nbins,
+        nrows,
+    )
+    counts = get_counts(
+        frequencies_gpu,
+        amplitudes_gpu,
+        mean_frequencies,
+        band_size,
+        t_fft,
+        nbins,
+        ncols,
+        nrows,
+    )
+
+    return counts, bins
+
+
+def get_counts(
+    frequencies, amplitudes, mean_frequencies, band_size, t_fft, nbins, ncols, nrows
+):
+    preprocessing_module = get_preprocessing_module("histogram_kernel.cu")
+    counts = cupy.zeros((nrows, nbins), dtype=FLOAT_PRECISION)
+    block_shape = BLOCK_SHAPE
+    grid_shape = (
+        ncols // block_shape[0] + 1,
+        nrows // block_shape[1] + 1,
+    )
+    kernel = preprocessing_module.get_function("make_histograms")
+    kernel(
+        grid_shape,
+        block_shape,
+        (
+            frequencies,
+            amplitudes,
+            mean_frequencies,
+            INT_PRECISION(band_size),
+            FLOAT_PRECISION(t_fft),
+            nbins,
+            ncols,
+            nrows,
+            counts,
+        ),
+    )
+    return counts
+
+
 def get_bins(mean_frequencies, band_size, t_fft, nbins, nrows):
     preprocessing_module = get_preprocessing_module("histogram_kernel.cu")
     bins = cupy.ones((nrows, nbins), dtype=FLOAT_PRECISION)
@@ -64,28 +140,6 @@ def get_bins(mean_frequencies, band_size, t_fft, nbins, nrows):
         ),
     )
     return bins
-
-
-def cupy_histograms(frequencies_gpu, amplitudes, t_fft, band_size: int):
-    mean_frequencies = cupy.nanmean(frequencies_gpu, axis=1).astype(FLOAT_PRECISION)
-
-    nbins = INT_PRECISION(band_size * t_fft)
-    nrows = INT_PRECISION(frequencies_gpu.shape[0])
-    bins_gpu = get_bins(
-        mean_frequencies,
-        band_size,
-        t_fft,
-        nbins,
-        nrows,
-    )
-    frequencies_cpu, bins_cpu = frequencies_gpu.get(), bins_gpu.get()
-
-    counts = histogram_along_axis_cpu(frequencies_cpu, bins_cpu)
-    return counts, bins_cpu[:, :-1]
-
-
-def cuda_histograms():
-    ...
 
 
 def histogram_along_axis_cpu(frequencies, bins):
