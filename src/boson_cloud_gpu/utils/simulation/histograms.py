@@ -12,10 +12,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import cupy
-
+import numpy
 
 import sys
 import os.path
+
+import matplotlib.pyplot as plt
 
 PATH_TO_THIS = os.path.dirname(__file__)
 PATH_TO_MASTER = PATH_TO_THIS + "/../../"
@@ -40,7 +42,7 @@ BLOCK_SHAPE = (
 from utils.common import FLOAT_PRECISION, INT_PRECISION
 
 
-def get_bins(median_frequencies, band_size, t_fft, nbins, nrows):
+def get_bins(mean_frequencies, band_size, t_fft, nbins, nrows):
     preprocessing_module = get_preprocessing_module("histogram_kernel.cu")
     bins = cupy.ones((nrows, nbins), dtype=FLOAT_PRECISION)
     block_shape = BLOCK_SHAPE
@@ -53,7 +55,7 @@ def get_bins(median_frequencies, band_size, t_fft, nbins, nrows):
         grid_shape,
         block_shape,
         (
-            median_frequencies,
+            mean_frequencies,
             INT_PRECISION(band_size),
             FLOAT_PRECISION(t_fft),
             nrows,
@@ -61,23 +63,37 @@ def get_bins(median_frequencies, band_size, t_fft, nbins, nrows):
             bins,
         ),
     )
-
     return bins
 
 
-def cupy_histograms(frequencies, amplitudes, t_fft, band_size: int):
-    median_frequencies = cupy.nanmedian(frequencies, axis=1)
+def cupy_histograms(frequencies_gpu, amplitudes, t_fft, band_size: int):
+    mean_frequencies = cupy.nanmean(frequencies_gpu, axis=1).astype(FLOAT_PRECISION)
 
     nbins = INT_PRECISION(band_size * t_fft)
-    nrows = INT_PRECISION(frequencies.shape[0])
-    bins = get_bins(
-        median_frequencies,
+    nrows = INT_PRECISION(frequencies_gpu.shape[0])
+    bins_gpu = get_bins(
+        mean_frequencies,
         band_size,
         t_fft,
         nbins,
         nrows,
     )
+    frequencies_cpu, bins_cpu = frequencies_gpu.get(), bins_gpu.get()
+
+    counts = histogram_along_axis_cpu(frequencies_cpu, bins_cpu)
+    return counts, bins_cpu[:, :-1]
 
 
 def cuda_histograms():
     ...
+
+
+def histogram_along_axis_cpu(frequencies, bins):
+    counts = numpy.ones((bins.shape[0], bins.shape[1] - 1))
+
+    for row, frequency_arr in enumerate(frequencies):
+        counts[row] = numpy.histogram(
+            frequency_arr[~numpy.isnan(frequency_arr)], bins[row]
+        )[0]
+
+    return counts

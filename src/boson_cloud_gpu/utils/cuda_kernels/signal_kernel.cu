@@ -61,6 +61,7 @@ __global__ void get_signals(const float *bh_masses, const float *bh_ages_yrs,
   __syncthreads();
 
   if ((x_abs < ncols) && (y_abs < nrows)) {
+    // Skipping the first row as it is reserved for minimum frequencies value
     unsigned int index = x_abs + ncols * y_abs;
 
     float bh_mass = bh_masses_tile[threadIdx.x];

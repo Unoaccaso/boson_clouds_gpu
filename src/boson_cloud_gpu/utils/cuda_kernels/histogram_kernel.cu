@@ -15,7 +15,7 @@ along with this program.If not, see < http: // www.gnu.org/licenses/>.
 */
 
 extern "C" {
-#define NAN 0 / 0
+#define NAN 0. / 0.
 __global__ void make_bins(const float *median_frequencies, const int band_size,
                           const float t_fft, const int nrows, const int nbins,
                           float *bins) {

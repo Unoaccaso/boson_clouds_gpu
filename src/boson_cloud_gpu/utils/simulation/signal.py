@@ -51,6 +51,8 @@ def get_signals(BH_masses, BH_ages_yrs, BH_spins, distances, boson_masses):
         ncols // block_size[0] + 1,
         nrows // block_size[1] + 1,
     )
+    # In frequencies we add one row to store the value of minimum frequency per boson,
+    # to calculate histograms faster.
     out_frequencies = cupy.ones((nrows, ncols), dtype=FLOAT_PRECISION)
     out_amplitudes = cupy.ones((nrows, ncols), dtype=FLOAT_PRECISION)
     signal_kernel(

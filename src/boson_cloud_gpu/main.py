@@ -48,7 +48,7 @@ def main():
         boson_masses,
     )
 
-    simulation.cupy_histograms(
+    counts, bins = simulation.cupy_histograms(
         frequencies,
         amplitudes,
         100,
@@ -58,4 +58,4 @@ def main():
 
 if __name__ == "__main__":
     # main()
-    print(benchmark(main, n_repeat=100, n_warmup=5, name="gpu_v3.0"))
+    print(benchmark(main, n_repeat=10, n_warmup=5, name="gpu_v3.0"))
