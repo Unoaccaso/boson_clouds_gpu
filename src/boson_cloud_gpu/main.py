@@ -30,7 +30,7 @@ import cupy
 import numpy
 from cupyx.profiler import benchmark
 
-from utils.properties import FLOAT_PRECISION, INT_PRECISION
+from utils.common import FLOAT_PRECISION, INT_PRECISION
 
 
 def main():
@@ -48,7 +48,12 @@ def main():
         boson_masses,
     )
 
-    # plt.hist(cupy.asnumpy(frequencies)[700])
+    simulation.cupy_histograms(
+        frequencies,
+        amplitudes,
+        100,
+        10,
+    )
 
 
 if __name__ == "__main__":

@@ -16,20 +16,19 @@ import os.path
 
 PATH_TO_THIS = os.path.dirname(__file__)
 PATH_TO_MASTER = PATH_TO_THIS + "/../../"
-PATH_TO_KERNELS = PATH_TO_MASTER + "/utils/cuda_kernels/"
 sys.path.append(PATH_TO_MASTER)
 
 import cupy
 import configparser
 
-from utils.distributions import distributions
+from utils.common import get_preprocessing_module
 
 PATH_TO_SETTINGS = PATH_TO_MASTER + "/config.ini"
 config = configparser.ConfigParser()
 config.read(PATH_TO_SETTINGS)
 
 
-from utils.properties import FLOAT_PRECISION, INT_PRECISION
+from utils.common import FLOAT_PRECISION, INT_PRECISION
 
 
 # global variables
@@ -71,10 +70,3 @@ def get_signals(BH_masses, BH_ages_yrs, BH_spins, distances, boson_masses):
     )
 
     return out_frequencies, out_amplitudes
-
-
-def get_preprocessing_module(module: str):
-    # DOCUMENT THIS
-    with open(PATH_TO_KERNELS + "/" + module, "r") as cuda_module_file:
-        cuda_module = cupy.RawModule(code=cuda_module_file.read())
-    return cuda_module

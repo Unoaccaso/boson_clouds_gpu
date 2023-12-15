@@ -24,18 +24,16 @@ import numpy
 import warnings
 import configparser
 
-from . import properties
+from . import common
 
 PATH_TO_SETTINGS = PATH_TO_MASTER + "/config.ini"
 config = configparser.ConfigParser()
 config.read(PATH_TO_SETTINGS)
 
-FLOAT_PRECISION = properties.FloatPrecision[
+FLOAT_PRECISION = common.FloatPrecision[
     config["numeric.precision"]["FloatPrecision"]
 ].value
-INT_PRECISION = properties.IntPrecision[
-    config["numeric.precision"]["IntPrecision"]
-].value
+INT_PRECISION = common.IntPrecision[config["numeric.precision"]["IntPrecision"]].value
 
 from typing import NamedTuple
 

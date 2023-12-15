@@ -13,3 +13,4 @@
 
 
 from .signal import get_signals
+from .histograms import cupy_histograms, cuda_histograms

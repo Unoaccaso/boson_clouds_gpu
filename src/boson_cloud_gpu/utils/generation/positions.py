@@ -30,7 +30,7 @@ config = configparser.ConfigParser()
 config.read(PATH_TO_SETTINGS)
 
 
-from utils.properties import FLOAT_PRECISION, INT_PRECISION
+from utils.common import FLOAT_PRECISION, INT_PRECISION
 
 
 def get_positions():
