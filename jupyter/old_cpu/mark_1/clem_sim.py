@@ -330,7 +330,7 @@ class cluster(bosonGrid):
                 * self.onev
             )
 
-            # elevation to 9 potency
+            # elevation to 9th power
             temp = alpha / 0.1
             for i in range(8):
                 temp = temp * alpha / 0.1

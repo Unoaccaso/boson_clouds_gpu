@@ -50,7 +50,9 @@ def main():
     frequency = sig.masked_frequencies
     amplitude = sig.masked_amplitudes
 
+    arr = cupy.asnumpy(frequency)
+
 
 if __name__ == "__main__":
     # main()
-    print(benchmark(main, n_repeat=100, n_warmup=5, name="gpu_v1.0"))
+    print(benchmark(main, n_repeat=10, n_warmup=2, name="gpu_v1.0"))

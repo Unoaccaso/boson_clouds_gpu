@@ -41,7 +41,8 @@ __global__ void make_bins(const float *mean_frequency, const int band_size,
   }
 }
 
-__global__ void make_histograms(const float *frequencies, const int *amplitudes,
+__global__ void make_histograms(const float *frequencies,
+                                const float *amplitudes,
                                 const float *mean_frequency,
                                 const int band_size, const float t_fft,
                                 const int nbins, const int ncols,
@@ -67,9 +68,10 @@ __global__ void make_histograms(const float *frequencies, const int *amplitudes,
 
       int bin_id = (int)((frequencies[index] - start_frequency) * t_fft);
 
-      atomicAdd(&counts[bin_id + y * nbins], 1);
+      float spectral_amplitude = amplitudes[index];
+
+      atomicAdd(&counts[bin_id + y * nbins], spectral_amplitude);
     }
   }
-  __syncthreads();
 }
 }

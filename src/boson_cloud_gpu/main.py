@@ -28,12 +28,14 @@ config.read(PATH_TO_THIS + "/config.ini")
 
 import cupy
 import numpy
+from tqdm import tqdm
 from cupyx.profiler import benchmark
 
 from utils.common import FLOAT_PRECISION, INT_PRECISION
 
 
 def main():
+    t_fft = 100
     positions = generation.positions.get_positions()
     distances = generation.calculate_distances(positions)
 
@@ -48,17 +50,17 @@ def main():
         boson_masses,
     )
 
-    counts, bins = simulation.cupy_histograms(
-        frequencies,
-        amplitudes,
-        100,
-        10,
-    )
+    # counts, bins = simulation.cupy_histograms(
+    #     frequencies,
+    #     amplitudes,
+    #     t_fft,
+    #     10,
+    # )
 
-    # idx = 700
-    # plt.plot(cupy.asnumpy(bins)[idx], cupy.asnumpy(a=counts)[idx])
+    a = cupy.asnumpy(frequencies)
+    # b = cupy.asnumpy(counts)
 
 
 if __name__ == "__main__":
     # main()
-    print(benchmark(main, n_repeat=10, n_warmup=5, name="gpu_v3.0"))
+    print(benchmark(main, n_repeat=10, n_warmup=3, name="gpu_v3.0"))

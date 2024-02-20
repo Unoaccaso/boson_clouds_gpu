@@ -48,8 +48,9 @@ def main():
     )
 
     frequency, amplitude = sig.get_signals()
+    arr = cupy.asnumpy(frequency)
 
 
 if __name__ == "__main__":
     # main()
-    print(benchmark(main, n_repeat=100, n_warmup=5, name="gpu_v2.0"))
+    print(benchmark(main, n_repeat=10, n_warmup=2, name="gpu_v2.0"))

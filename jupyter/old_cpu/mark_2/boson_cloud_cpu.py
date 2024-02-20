@@ -23,3 +23,5 @@ if __name__ == "__main__":
 
     generated_frequencies = data.frequency[0]
     generated_amplitudes = data.amplitude[0]
+
+    data.inject_signals_and_CR(generated_frequencies, generated_amplitudes, 100)
